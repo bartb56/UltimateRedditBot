@@ -9,8 +9,8 @@ using UltimateRedditBot.Database;
 namespace UltimateRedditBot.Database.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20200910162838_GuildSettings")]
-    partial class GuildSettings
+    [Migration("20200912173836_Init")]
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -22,32 +22,27 @@ namespace UltimateRedditBot.Database.Migrations
 
             modelBuilder.Entity("UltimateRedditBot.Domain.Models.Channel", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<decimal>("ChannelId")
                         .HasColumnType("decimal(20,0)");
 
                     b.Property<int>("GuildId")
                         .HasColumnType("int");
 
+                    b.Property<decimal?>("GuildId1")
+                        .HasColumnType("decimal(20,0)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("GuildId");
+                    b.HasIndex("GuildId1");
 
                     b.ToTable("Channels");
                 });
 
             modelBuilder.Entity("UltimateRedditBot.Domain.Models.Guild", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<decimal>("GuildId")
                         .HasColumnType("decimal(20,0)");
 
                     b.HasKey("Id");
@@ -62,11 +57,14 @@ namespace UltimateRedditBot.Database.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<int>("GuildId")
-                        .HasColumnType("int");
+                    b.Property<decimal>("GuildId")
+                        .HasColumnType("decimal(20,0)");
 
-                    b.Property<int>("MaxBulkAdds")
-                        .HasColumnType("int");
+                    b.Property<string>("Key")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -150,8 +148,8 @@ namespace UltimateRedditBot.Database.Migrations
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<int>("GuildId")
-                        .HasColumnType("int");
+                    b.Property<decimal>("GuildId")
+                        .HasColumnType("decimal(20,0)");
 
                     b.Property<int>("LastPostId")
                         .HasColumnType("int");
@@ -174,9 +172,7 @@ namespace UltimateRedditBot.Database.Migrations
                 {
                     b.HasOne("UltimateRedditBot.Domain.Models.Guild", "Guild")
                         .WithMany("Channels")
-                        .HasForeignKey("GuildId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("GuildId1");
                 });
 
             modelBuilder.Entity("UltimateRedditBot.Domain.Models.GuildSettings", b =>

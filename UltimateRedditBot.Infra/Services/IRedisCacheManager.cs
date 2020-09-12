@@ -14,6 +14,6 @@ namespace UltimateRedditBot.Infra.Services
 
         Task RemoveRangeQueueItems(IEnumerable<Guid> queueItemsIds);
 
-        Task RemoveByGuildId(int guildId);
+        Task RemoveByGuildId(ulong guildId);
     }
 }

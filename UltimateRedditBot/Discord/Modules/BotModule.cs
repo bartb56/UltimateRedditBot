@@ -142,7 +142,7 @@ namespace UltimateRedditBot.Discord.Modules
             var guildId = ((SocketGuildChannel)Context.Channel).Guild.Id;
 
             var guilds = await _unitOfWork.GuildRepository.GetAll();
-            var xt = guilds.FirstOrDefault(x => x.GuildId == guildId);
+            var xt = guilds.FirstOrDefault(x => x.Id == guildId);
 
             var subreddit = await _unitOfWork.SubRedditRepository.GetSubRedditByName(subReddit);
             var history = await _unitOfWork.SubRedditHistoryRepository.GetAll();

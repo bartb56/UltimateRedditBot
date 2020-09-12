@@ -65,7 +65,7 @@ namespace UltimateRedditBot.Core.Services
             }
         }
 
-        public async Task ClearGuildQueue(int guildId)
+        public async Task ClearGuildQueue(ulong guildId)
         {
             await _redisCacheManager.RemoveByGuildId(guildId);
         }
@@ -190,7 +190,7 @@ namespace UltimateRedditBot.Core.Services
             }
         }
 
-        private async Task UpdateGuildHistory(Post post, int guildId, int subRedditId)
+        private async Task UpdateGuildHistory(Post post, ulong guildId, int subRedditId)
         {
             var history = await _unitOfWork.SubRedditHistoryRepository.Queriable().FirstOrDefaultAsync(x => x.GuildId == guildId && x.SubRedditId == subRedditId);
             if (history == null)

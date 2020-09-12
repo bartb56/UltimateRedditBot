@@ -56,15 +56,13 @@ namespace UltimateRedditBot.Core.AppService
 
         public async Task SaveChanges<TObj>(ulong guildId, string key, TObj value)
         {
-            var guild = await _guildAppService.GetByGuildId(guildId);
-
             var setting = await GetGuildSetting(guildId, key);
 
             if (setting is null && value is not null)
             {
                 setting = new GuildSettings
                 {
-                    GuildId = guild.Id,
+                    GuildId = guildId,
                     Key = key,
                     Value = value.ToString()
                 };
@@ -105,7 +103,7 @@ namespace UltimateRedditBot.Core.AppService
 
         public async Task<GuildSettings> GetByGuildId(ulong guildId)
         {
-            return await Queriable().Include(x => x.Guild).FirstOrDefaultAsync(guild => guild.Guild.Id == guild.Id);
+            return await Queriable().FirstOrDefaultAsync(guildSetttings => guildSetttings.GuildId == guildId);
         }
     }
 }

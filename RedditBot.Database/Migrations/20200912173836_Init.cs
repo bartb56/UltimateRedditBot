@@ -2,7 +2,7 @@
 
 namespace UltimateRedditBot.Database.Migrations
 {
-    public partial class init : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -10,9 +10,7 @@ namespace UltimateRedditBot.Database.Migrations
                 name: "Guilds",
                 columns: table => new
                 {
-                    Id = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    GuildId = table.Column<decimal>(nullable: false)
+                    Id = table.Column<decimal>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -37,16 +35,36 @@ namespace UltimateRedditBot.Database.Migrations
                 name: "Channels",
                 columns: table => new
                 {
-                    Id = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ChannelId = table.Column<decimal>(nullable: false),
+                    Id = table.Column<decimal>(nullable: false),
+                    GuildId1 = table.Column<decimal>(nullable: true),
                     GuildId = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Channels", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Channels_Guilds_GuildId",
+                        name: "FK_Channels_Guilds_GuildId1",
+                        column: x => x.GuildId1,
+                        principalTable: "Guilds",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GuildSettings",
+                columns: table => new
+                {
+                    Id = table.Column<int>(nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    GuildId = table.Column<decimal>(nullable: false),
+                    Key = table.Column<string>(nullable: true),
+                    Value = table.Column<string>(nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GuildSettings", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_GuildSettings_Guilds_GuildId",
                         column: x => x.GuildId,
                         principalTable: "Guilds",
                         principalColumn: "Id",
@@ -90,7 +108,7 @@ namespace UltimateRedditBot.Database.Migrations
                     Id = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     LastPostId = table.Column<int>(nullable: false),
-                    GuildId = table.Column<int>(nullable: false),
+                    GuildId = table.Column<decimal>(nullable: false),
                     SubRedditId = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
@@ -101,24 +119,29 @@ namespace UltimateRedditBot.Database.Migrations
                         column: x => x.GuildId,
                         principalTable: "Guilds",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_SubRedditHistories_Posts_LastPostId",
                         column: x => x.LastPostId,
                         principalTable: "Posts",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_SubRedditHistories_SubReddits_SubRedditId",
                         column: x => x.SubRedditId,
                         principalTable: "SubReddits",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.NoAction);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Channels_GuildId",
+                name: "IX_Channels_GuildId1",
                 table: "Channels",
+                column: "GuildId1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GuildSettings_GuildId",
+                table: "GuildSettings",
                 column: "GuildId");
 
             migrationBuilder.CreateIndex(
@@ -146,6 +169,9 @@ namespace UltimateRedditBot.Database.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Channels");
+
+            migrationBuilder.DropTable(
+                name: "GuildSettings");
 
             migrationBuilder.DropTable(
                 name: "SubRedditHistories");

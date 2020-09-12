@@ -5,10 +5,10 @@ using UltimateRedditBot.Infra.Repository;
 
 namespace UltimateRedditBot.Infra.AppServices
 {
-    public interface IGuildAppService : IRepository<Guild>
+    public interface IGuildAppService : IRepository<Guild, ulong>
     {
-        Task<Guild> GetByGuildId(ulong guildId);
+        Task<Guild> GetByGuildId(ulong id);
 
-        Task Insert(IEnumerable<ulong> guildIds);
+        Task Insert(IEnumerable<ulong> ids);
     }
 }

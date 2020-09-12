@@ -13,6 +13,6 @@ namespace UltimateRedditBot.Infra.Services
 
         Task<IEnumerable<QueueItem>> GetQueueByGuild(Guild guild);
 
-        Task ClearGuildQueue(int guildId);
+        Task ClearGuildQueue(ulong guildId);
     }
 }

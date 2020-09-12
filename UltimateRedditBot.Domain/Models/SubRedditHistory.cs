@@ -11,7 +11,7 @@ namespace UltimateRedditBot.Domain.Models
 
         }
 
-        public SubRedditHistory(int postId, int guildId, int subRedditId)
+        public SubRedditHistory(int postId, ulong guildId, int subRedditId)
         {
             LastPostId = postId;
             GuildId = guildId;
@@ -35,7 +35,7 @@ namespace UltimateRedditBot.Domain.Models
         public int LastPostId { get; protected set; }
 
         public virtual Guild Guild { get; set; }
-        public int GuildId { get; protected set; }
+        public ulong GuildId { get; protected set; }
 
 
         public virtual SubReddit SubReddit { get; set; }

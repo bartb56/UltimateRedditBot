@@ -65,9 +65,7 @@ namespace UltimateRedditBot.App.Factories.QueueFactory
                     return;
                 }
 
-                var guild = await _unitOfWork.GuildRepository.Queriable().FirstOrDefaultAsync(guild => guild.GuildId == guildId);
-
-                IEnumerable<QueueItem> queueItems = Enumerable.Repeat(new QueueItem(guild.Id, subReddit.Id, channelId, post), amountOfTimes);
+                IEnumerable<QueueItem> queueItems = Enumerable.Repeat(new QueueItem(guildId, subReddit.Id, channelId, post), amountOfTimes);
                 var y = queueItems.ToList().Select(x =>
                 {
                     x.Id = Guid.NewGuid();
@@ -89,13 +87,13 @@ namespace UltimateRedditBot.App.Factories.QueueFactory
 
         public async Task<IEnumerable<QueueItem>> GetByGuildId(ulong guildId)
         {
-            var guild = await _unitOfWork.GuildRepository.Queriable().FirstOrDefaultAsync(guild => guild.GuildId == guildId);
+            var guild = await _unitOfWork.GuildRepository.GetById(guildId);
             return await _queueService.GetQueueByGuild(guild);
         }
 
         public async Task ClearGuildQueue(ulong guildId)
         {
-            var guild = await _unitOfWork.GuildRepository.Queriable().FirstOrDefaultAsync(guild => guild.GuildId == guildId);
+            var guild = await _unitOfWork.GuildRepository.GetById(guildId);
             await _queueService.ClearGuildQueue(guild.Id);
         }
 

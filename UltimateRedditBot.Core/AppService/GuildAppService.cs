@@ -9,7 +9,7 @@ using UltimateRedditBot.Infra.AppServices;
 
 namespace UltimateRedditBot.Core.AppService
 {
-    public class GuildAppService : Repository<Guild>, IGuildAppService
+    public class GuildAppService : Repository<Guild, ulong>, IGuildAppService
     {
         public GuildAppService(Context context)
             : base(context)
@@ -17,14 +17,14 @@ namespace UltimateRedditBot.Core.AppService
 
         }
 
-        public async Task<Guild> GetByGuildId(ulong guildId)
+        public async Task<Guild> GetByGuildId(ulong id)
         {
-            return await Queriable().FirstOrDefaultAsync(guild => guild.GuildId == guildId);
+            return await Queriable().FirstOrDefaultAsync(guild => guild.Id == id);
         }
 
-        public async Task Insert(IEnumerable<ulong> guildIds)
+        public async Task Insert(IEnumerable<ulong> ids)
         {
-            var guilds = guildIds.Select(guildId => new Guild(guildId)).ToList();
+            var guilds = ids.Select(guildId => new Guild(guildId)).ToList();
             await Insert(guilds);
         }
     }

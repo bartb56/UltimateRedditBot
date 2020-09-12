@@ -2,7 +2,7 @@
 
 namespace UltimateRedditBot.Domain.Models
 {
-    public class Channel : BaseEntity
+    public class Channel : BaseEntity<ulong>
     {
         #region Constructor
         public Channel()
@@ -10,9 +10,8 @@ namespace UltimateRedditBot.Domain.Models
 
         }
 
-        public Channel(ulong channelId, int guildId)
+        public Channel(int guildId)
         {
-            ChannelId = channelId;
             GuildId = guildId;
         }
 
@@ -23,8 +22,6 @@ namespace UltimateRedditBot.Domain.Models
         #endregion
 
         #region Properties
-
-        public ulong ChannelId { get; protected set; }
 
         public Guild Guild { get; protected set; }
         public int GuildId { get; protected set; }

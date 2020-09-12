@@ -29,7 +29,7 @@ namespace UltimateRedditBot.App.Factories.GuildFactory
         {
             var guilds = await _unitOfWork.GuildRepository.Get();
 
-            guildIds = guildIds.Where(guildId => guilds.FirstOrDefault(x => x.GuildId == guildId) == null);
+            guildIds = guildIds.Where(guildId => guilds.FirstOrDefault(x => x.Id == guildId) == null);
             if (guildIds.Any())
                 await _unitOfWork.GuildRepository.Insert(guildIds.Select(id => new Guild(id)));
 

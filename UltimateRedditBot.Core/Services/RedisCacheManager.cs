@@ -89,7 +89,7 @@ namespace UltimateRedditBot.Core.Services
             }
         }
 
-        public async Task RemoveByGuildId(int guildId)
+        public async Task RemoveByGuildId(ulong guildId)
         {
 
             var cachedQueueItems = await GetQueueItems();
