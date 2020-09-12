@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30404.54
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UltimateRedditBot", "UltimateRedditBot\UltimateRedditBot.csproj", "{1D4F4578-56CD-4D23-B627-CEF4CCC67493}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UltimateRedditBot.Domain", "UltimateRedditBot.Domain\UltimateRedditBot.Domain.csproj", "{21710F93-0A3B-4C10-AD12-2014979C6B71}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UltimateRedditBot.Database", "RedditBot.Database\UltimateRedditBot.Database.csproj", "{47A8873C-299D-4691-B44F-685318031525}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UltimateRedditBot.Infra", "UltimateRedditBot.Infra\UltimateRedditBot.Infra.csproj", "{F5E30A84-4401-45FB-9C7B-B0C9B0F54DF5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UltimateRedditBot.Core", "UltimateRedditBot.Core\UltimateRedditBot.Core.csproj", "{2B2F7CDF-02B1-4280-8F9A-0CCE28D9ED38}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UltimateRedditBot.App", "UltimateRedditBot.App\UltimateRedditBot.App.csproj", "{9206CE34-7C7C-4ADB-865B-9314AB15E11F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1D4F4578-56CD-4D23-B627-CEF4CCC67493}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D4F4578-56CD-4D23-B627-CEF4CCC67493}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D4F4578-56CD-4D23-B627-CEF4CCC67493}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D4F4578-56CD-4D23-B627-CEF4CCC67493}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21710F93-0A3B-4C10-AD12-2014979C6B71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21710F93-0A3B-4C10-AD12-2014979C6B71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21710F93-0A3B-4C10-AD12-2014979C6B71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21710F93-0A3B-4C10-AD12-2014979C6B71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47A8873C-299D-4691-B44F-685318031525}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47A8873C-299D-4691-B44F-685318031525}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47A8873C-299D-4691-B44F-685318031525}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47A8873C-299D-4691-B44F-685318031525}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5E30A84-4401-45FB-9C7B-B0C9B0F54DF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5E30A84-4401-45FB-9C7B-B0C9B0F54DF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5E30A84-4401-45FB-9C7B-B0C9B0F54DF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5E30A84-4401-45FB-9C7B-B0C9B0F54DF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B2F7CDF-02B1-4280-8F9A-0CCE28D9ED38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B2F7CDF-02B1-4280-8F9A-0CCE28D9ED38}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B2F7CDF-02B1-4280-8F9A-0CCE28D9ED38}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B2F7CDF-02B1-4280-8F9A-0CCE28D9ED38}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9206CE34-7C7C-4ADB-865B-9314AB15E11F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9206CE34-7C7C-4ADB-865B-9314AB15E11F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9206CE34-7C7C-4ADB-865B-9314AB15E11F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9206CE34-7C7C-4ADB-865B-9314AB15E11F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {517C729F-CE56-441F-A3EB-E056988FD1BA}
+	EndGlobalSection
+EndGlobal

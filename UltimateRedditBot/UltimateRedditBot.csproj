@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+    <SupportRuntimeIdentifiers>
+      win-x64;
+      win-86;
+      linux-arm;
+      linux-arm64
+    </SupportRuntimeIdentifiers>
+    <RuntimeIdentifiers>win10-x64;osx.10.12-x64;debian.8-x64;linux-arm;</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UltimateRedditBot.App\UltimateRedditBot.App.csproj" />
+  </ItemGroup>
+
+</Project>
