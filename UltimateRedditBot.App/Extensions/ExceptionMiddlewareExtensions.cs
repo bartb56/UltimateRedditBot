@@ -20,7 +20,7 @@ namespace UltimateRedditBot.App.Extensions
                 handler.Run(context =>
                 {
                     var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-                    if (exception == null)
+                    if (exception is null)
                         return Task.CompletedTask;
 
                     try

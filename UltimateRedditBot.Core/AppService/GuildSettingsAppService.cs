@@ -39,11 +39,11 @@ namespace UltimateRedditBot.Core.AppService
         {
             var settings = await GetGuildBySettings(guildId);
 
-            if (settings == null)
+            if (settings is null)
                 return default(TObj);
 
             var setting = settings.FirstOrDefault(setting => setting.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
-            if (setting == null)
+            if (setting is null)
                 return default(TObj);
 
             return (TObj)Convert.ChangeType(setting.Value, typeof(TObj));
@@ -86,7 +86,7 @@ namespace UltimateRedditBot.Core.AppService
         {
             var guildSettings = await GetGuildBySettings(guildId);
 
-            if (guildSettings == null)
+            if (guildSettings is null)
                 return null;
 
             return guildSettings.FirstOrDefault(setting => setting.Key.Equals(key, StringComparison.OrdinalIgnoreCase));

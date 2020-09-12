@@ -24,8 +24,7 @@ namespace UltimateRedditBot.Core.Services
         private readonly IRedditApiService _redditApiService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly DiscordSocketClient _discordClient;
-        private static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
-        private static SemaphoreSlim queueAccessor = new SemaphoreSlim(1, 1);
+        private readonly static SemaphoreSlim proccessQueueAccessor = new SemaphoreSlim(1, 1);
         private readonly IRedisCacheManager _redisCacheManager;
 
         #endregion
@@ -73,102 +72,108 @@ namespace UltimateRedditBot.Core.Services
 
         public async Task<IEnumerable<QueueItem>> GetQueueByGuild(Guild guild)
         {
-            //var queueItemsCache = await _easyCachingProvider.GetAsync<List<QueueItem>>("queue");
-
-            //if (!queueItemsCache.HasValue)
             return null;
-
-            //return queueItemsCache.Value.Where(queueItem => queueItem.GuildId == guild.Id);
         }
 
         private async Task Initialize()
         {
-            await Task.Delay(2000);
-            await ProccessQueue();
+            await Task.Delay(1000);
+
+            await proccessQueueAccessor.WaitAsync();
+            try
+            {
+                await ProccessQueue();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            finally 
+            {
+                proccessQueueAccessor.Release();
+                Initialize();
+            }
         }
 
         private async Task ProccessQueue()
         {
-            var queueItemsCache = await _redisCacheManager.GetQueueItems();
-            var queueItemsToBeProcessed = queueItemsCache?.DistinctBy(x => x.SubRedditId).ToList();
-
-            if (queueItemsCache.Any())
+            var hasQueueItems = await _redisCacheManager.Exists();
+            if (!hasQueueItems)
             {
-                Console.WriteLine($"There are currently: { queueItemsCache.Count() } in the queue");
-                await semaphoreSlim.WaitAsync();
-                try
-                {
-                    var postDtos = new List<Task<PostDto>>();
-
-                    foreach (var queueItem in queueItemsToBeProcessed)
-                    {
-                        var subreddit = await _unitOfWork.SubRedditRepository.GetById(queueItem.SubRedditId);
-                        var history = subreddit.SubRedditHistories.FirstOrDefault(x => x.GuildId == queueItem.GuildId);
-                        if (history != null)
-                        {
-                            var lastPost = await _unitOfWork.PostRepository.GetById(history.LastPostId);
-                            postDtos.Add(_redditApiService.GetPost(queueItem, lastPost.PostId, subreddit.Name));
-                        }
-                        else
-                            postDtos.Add(_redditApiService.GetPost(queueItem, "", subreddit.Name));
-                    }
-
-                    var posts = await Task.WhenAll(postDtos.ToArray());
-                    posts = posts.Where(post => post != null).ToArray();
-
-                    if(posts is null)
-                    {
-                        semaphoreSlim.Release();
-                        //Wait a couple of ms before going again.
-                        await Task.Delay(500);
-                        await ProccessQueue();
-                        return;
-                    }
-
-                    foreach (var queueItem in queueItemsToBeProcessed)
-                    {
-                        //Get the post for this queueItem
-                        var post = posts.FirstOrDefault(post => post.QueueItemId == queueItem.Id && post.Post?.SubRedditId == queueItem.SubRedditId)?.Post;
-                        if (post is null)
-                            continue;
-
-                        //Send the post back to the client.
-                        var replyMessageTask = ReplyMessage(queueItem.ChannelId, post.Url.ToString());
-
-                        //Save the post details
-                        await SaveOrGetPost(post);
-                            
-                        //Update the guild's history.
-                        await UpdateGuildHistory(post, queueItem.GuildId, queueItem.SubRedditId);
-
-                        //Ensure that the message has been send before continueing,
-                        await replyMessageTask;
-                    }
-                    
-                    //Commit the database changes.
-                    _unitOfWork.Commit();
-
-                    //To minimize the time that i have to lock the queue service ill get the queue items here again.
-                    await _redisCacheManager.RemoveRangeQueueItems(queueItemsToBeProcessed.Select(x => x.Id));
-                }
-                catch (Exception e)
-                {
-
-                }
-                finally
-                {
-                    semaphoreSlim.Release();
-                }
-
-                //Wait a couple of ms before going again.
-                await Task.Delay(500);
-                await ProccessQueue();
+                return;
             }
-            else
+            
+            var queueItemsCache = await _redisCacheManager.GetQueueItems(0);
+
+            try
             {
-                await Task.Delay(500);
-                await ProccessQueue();
+                await ProccessQueue(queueItemsCache?.DistinctBy(x => x.GuildId).ToList());
             }
+            catch(Exception e)
+            {
+                //Failed.
+            }
+        }
+
+        private async Task ProccessQueue(IEnumerable<QueueItem> queueItems)
+        {
+
+            var postDtos = await GetPostDtos(queueItems);
+
+            var posts = await Task.WhenAll(postDtos.ToArray());
+            posts = posts.Where(post => post is not null).ToArray();
+
+            if (posts is null)
+            {
+                return;
+            }
+
+            foreach (var queueItem in queueItems)
+            {
+                //Get the post for this queueItem
+                var post = posts.FirstOrDefault(post => post.QueueItemId == queueItem.Id && post.Post?.SubRedditId == queueItem.SubRedditId)?.Post;
+                if (post is null)
+                    continue;
+
+                //Send the post back to the client.
+                var replyMessageTask = ReplyMessage(queueItem.ChannelId, post.Url.ToString());
+
+                //Save the post details
+                await SaveOrGetPost(post);
+
+                //Update the guild's history.
+                await UpdateGuildHistory(post, queueItem.GuildId, queueItem.SubRedditId);
+
+                //Ensure that the message has been send before continueing,
+                await replyMessageTask;
+            }
+
+            //Commit the database changes.
+            _unitOfWork.Commit();
+
+            //To minimize the time that i have to lock the queue service ill get the queue items here again.
+            await _redisCacheManager.RemoveRangeQueueItems(queueItems.Select(x => x.Id));
+            
+        }
+
+        private async Task<IEnumerable<Task<PostDto>>> GetPostDtos(IEnumerable<QueueItem> queueItems)
+        {
+            var postDtos = new List<Task<PostDto>>();
+
+            foreach (var queueItem in queueItems)
+            {
+                var subreddit = await _unitOfWork.SubRedditRepository.GetById(queueItem.SubRedditId);
+                var history = subreddit.SubRedditHistories.FirstOrDefault(x => x.GuildId == queueItem.GuildId);
+                if (history != null)
+                {
+                    var lastPost = await _unitOfWork.PostRepository.GetById(history.LastPostId);
+                    postDtos.Add(_redditApiService.GetPost(queueItem, lastPost.PostId, subreddit.Name));
+                }
+                else
+                    postDtos.Add(_redditApiService.GetPost(queueItem, "", subreddit.Name));
+            }
+
+            return postDtos;
         }
 
         private async Task ReplyMessage(ulong channelId, string postUrl)
@@ -193,7 +198,7 @@ namespace UltimateRedditBot.Core.Services
         private async Task UpdateGuildHistory(Post post, ulong guildId, int subRedditId)
         {
             var history = await _unitOfWork.SubRedditHistoryRepository.Queriable().FirstOrDefaultAsync(x => x.GuildId == guildId && x.SubRedditId == subRedditId);
-            if (history == null)
+            if (history is null)
             
                 await _unitOfWork.SubRedditHistoryRepository.Insert(new SubRedditHistory(post.Id, guildId, subRedditId));
             else
@@ -203,11 +208,6 @@ namespace UltimateRedditBot.Core.Services
             }
 
             _unitOfWork.Commit();
-        }
-
-        private async Task Refactor()
-        {
-            //var queueItemsCache = await _easyCachingProvider.GetAsync<List<QueueItem>>("queue");
         }
 
         #endregion

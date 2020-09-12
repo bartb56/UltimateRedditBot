@@ -46,7 +46,7 @@ namespace UltimateRedditBot.Extensions
             }))
             .AddSingleton<StartDiscord>()
             .AddSingleton<CommandHandler>()
-            .AddSingleton<BotModule>()
+            .AddSingleton<RedditModule>()
             .AddSingleton<SettingsModule>();
         }
 

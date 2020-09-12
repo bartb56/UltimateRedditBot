@@ -30,14 +30,20 @@ namespace UltimateRedditBot.Core.Services
 
         #region Methods
 
-        public async Task<IEnumerable<QueueItem>> GetQueueItems()
+        public async Task<IEnumerable<QueueItem>> GetQueueItems(int? max = null)
         {
             await queueAccessor.WaitAsync();
             try
             {
                 var cachedResult = await _easyCachingProvider.GetAsync<IEnumerable<QueueItem>>(CachingConstants.QueueKey);
-                return cachedResult.Value;
 
+                if(cachedResult is not null && cachedResult.Value is not null && max.HasValue)
+                    Console.WriteLine($"There are currently: { cachedResult.Value.Count() } in the queue");
+                
+                if(max.HasValue)
+                    return cachedResult.Value;
+
+                return cachedResult.Value;
             }
             finally
             {
@@ -47,7 +53,7 @@ namespace UltimateRedditBot.Core.Services
 
         public async Task InsertRangeQueueItems(IEnumerable<QueueItem> queueItems)
         {
-            if (queueItems == null)
+            if (queueItems is null)
                 return;
 
             var cachedQueueItems = await GetQueueItems();
@@ -67,21 +73,29 @@ namespace UltimateRedditBot.Core.Services
 
         public async Task RemoveRangeQueueItems(IEnumerable<Guid> queueItemsIds)
         {
-            if (queueItemsIds == null)
+            if (queueItemsIds is null)
+                return;
+
+            var cachedQueueItems = await GetQueueItems();
+            if (cachedQueueItems is null)
                 return;
 
             queueItemsIds = queueItemsIds.ToList();
 
-            var cachedQueueItems = await GetQueueItems();
-            cachedQueueItems ??= new List<QueueItem>();
+            var newQueue = cachedQueueItems.ToList();
+            newQueue.RemoveAll(queueItem => queueItemsIds.Contains(queueItem.Id));;
 
             await queueAccessor.WaitAsync();
             try
             {
-                var newQue = cachedQueueItems.ToList();
-                newQue.Remove(newQue.FirstOrDefault(x => queueItemsIds.Any(y => x.Id == y)));
-
-                await _easyCachingProvider.SetAsync(CachingConstants.QueueKey, newQue, TimeSpan.FromDays(1));
+                if (!newQueue.Any())
+                    await _easyCachingProvider.RemoveAsync(CachingConstants.QueueKey);
+                else
+                    await _easyCachingProvider.SetAsync(CachingConstants.QueueKey, newQueue, TimeSpan.FromDays(1));
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
             }
             finally
             {
@@ -93,14 +107,37 @@ namespace UltimateRedditBot.Core.Services
         {
 
             var cachedQueueItems = await GetQueueItems();
-            if (cachedQueueItems == null)
+            if (cachedQueueItems is null)
                 return;
 
             await queueAccessor.WaitAsync();
             try
             {
-                var newQueue = cachedQueueItems.Where(x => x.GuildId != guildId);
-                await _easyCachingProvider.SetAsync(CachingConstants.QueueKey, newQueue.ToList(), TimeSpan.FromDays(1));
+                var newQueue = cachedQueueItems.Where(x => x.GuildId != guildId).ToList();
+
+                if (!newQueue.Any())
+                    await _easyCachingProvider.RemoveAsync(CachingConstants.QueueKey);
+                else
+                    await _easyCachingProvider.SetAsync(CachingConstants.QueueKey, newQueue, TimeSpan.FromDays(1));
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+            finally
+            {
+                queueAccessor.Release();
+            }
+        }
+
+        public async Task<bool> Exists()
+        {
+            await queueAccessor.WaitAsync();
+            try
+            {
+                var cachedResult = await _easyCachingProvider.ExistsAsync(CachingConstants.QueueKey);
+                return cachedResult;
+
             }
             finally
             {

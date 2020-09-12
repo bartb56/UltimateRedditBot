@@ -51,7 +51,7 @@ namespace UltimateRedditBot.App.Factories.QueueFactory
             {
                 var txtChannel = _discord.GetChannel(channelId) as ITextChannel;
                 var subReddit = await GetSubReddit(subRedditName);
-                if (subReddit == null)
+                if (subReddit is null)
                 {
                     await txtChannel.SendMessageAsync(text: "The subreddit could not be found.");
                     lazyAddToQueue.Release();
@@ -65,14 +65,11 @@ namespace UltimateRedditBot.App.Factories.QueueFactory
                     return;
                 }
 
-                IEnumerable<QueueItem> queueItems = Enumerable.Repeat(new QueueItem(guildId, subReddit.Id, channelId, post), amountOfTimes);
-                var y = queueItems.ToList().Select(x =>
-                {
-                    x.Id = Guid.NewGuid();
-                    return x;
-                }).ToList();
-                    
-                await _queueService.AddToQueueRange(y);
+                IEnumerable<QueueItem> queueItems = new List<QueueItem>();
+                for(var i = 0; i < amountOfTimes; i++)
+                    queueItems = queueItems.Append(new QueueItem(guildId, subReddit.Id, channelId, post, Guid.NewGuid()));
+                
+                await _queueService.AddToQueueRange(queueItems);
             }
             catch(Exception e)
             {

@@ -34,7 +34,7 @@ namespace UltimateRedditBot.App.Factories.SubRedditFactory
         {
             var subReddit = await GetFromDatabase(name);
 
-            if (subReddit == null)
+            if (subReddit is null)
                 subReddit = await GetFromApi(name);
 
             return subReddit;
@@ -51,7 +51,7 @@ namespace UltimateRedditBot.App.Factories.SubRedditFactory
         private async Task<SubReddit> GetFromApi(string name)
         {
             var subReddit = await _redditApiService.GetSubRedditByName(name);
-            if (subReddit == null)
+            if (subReddit is null)
                 return subReddit;
 
             await _unitOfWork.SubRedditRepository.Insert(subReddit);

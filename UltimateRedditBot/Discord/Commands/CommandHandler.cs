@@ -43,7 +43,7 @@ namespace UltimateRedditBot.Discord.Commands
         private async Task OnMessageReceivedAsync(SocketMessage s)
         {
             var msg = s as SocketUserMessage;     // Ensure the message is from a user/bot
-            if (msg == null || msg.Author.Id == _discord.CurrentUser.Id)
+            if (msg is null || msg.Author.Id == _discord.CurrentUser.Id)
                 return;
 
             var context = new SocketCommandContext(_discord, msg);     // Create the command context
@@ -78,7 +78,7 @@ namespace UltimateRedditBot.Discord.Commands
         private async Task OnGuildLeave(SocketGuild socketGuild)
         {
             /*var guild = await _guildAppService.GetByServerId(socketGuild.Id);
-            if (guild == null)
+            if (guild is null)
                 throw new NullReferenceException(nameof(guild));
 
             await _guildAppService.Delete(guild);

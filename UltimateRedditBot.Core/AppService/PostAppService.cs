@@ -29,7 +29,7 @@ namespace UltimateRedditBot.Core.AppService
 
         public async Task<bool> IsUniquePost(Post newPost)
         {
-            return await Queriable().FirstOrDefaultAsync(post => post.PostId == newPost.PostId) == null;
+            return await Queriable().FirstOrDefaultAsync(post => post.PostId == newPost.PostId) is null;
         }
     }
 }

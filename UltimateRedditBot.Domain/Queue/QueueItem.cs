@@ -10,14 +10,14 @@ namespace UltimateRedditBot.Domain.Queue
     {
         #region Constructor
 
-        public QueueItem(ulong guildId, int subRedditId, ulong channelId, PostType postType)
+        public QueueItem(ulong guildId, int subRedditId, ulong channelId, PostType postType, Guid id)
         {
             GuildId = guildId;
             SubRedditId = subRedditId;
             ChannelId = channelId;
             PostType = postType;
 
-            Id = Guid.NewGuid();
+            Id = id;
         }
 
         public QueueItem()

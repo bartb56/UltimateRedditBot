@@ -106,7 +106,7 @@ namespace UltimateRedditBot.Core.Services
 
             var posts = ParseData(responseBody, subRedditId);
 
-            if (posts == null || !posts.Any())
+            if (posts is null || !posts.Any())
                 return null;
 
             Post post = null;
@@ -130,7 +130,7 @@ namespace UltimateRedditBot.Core.Services
         private IEnumerable<Post> ParseData(string response, int subRedditId)
         {
             var apiPosts = JsonConvert.DeserializeObject<ApiSubReddit>(response);
-            if (apiPosts == null || apiPosts.Data == null || apiPosts.Data.Children == null)
+            if (apiPosts is null || apiPosts.Data is null || apiPosts.Data.Children is null)
                 return null;
 
             var posts = apiPosts.Data.Children.Select(x => x.Data)

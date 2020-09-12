@@ -16,7 +16,7 @@ using UltimateRedditBot.Infra.Uow;
 
 namespace UltimateRedditBot.Discord.Modules
 {
-    public class BotModule : UltimateCommandModule
+    public class RedditModule : UltimateCommandModule
     {
         #region Fields
 
@@ -32,7 +32,7 @@ namespace UltimateRedditBot.Discord.Modules
 
         #region Constructor
 
-        public BotModule(
+        public RedditModule(
                     DiscordSocketClient discord, IQueueFactory queueFactory,
                     IUnitOfWork unitOfWork,
                     IGuildSettingsFactory guildSettingsFactory,
@@ -46,7 +46,6 @@ namespace UltimateRedditBot.Discord.Modules
 
             
             _easyCachingProviderFactory = easyCachingProviderFactory;
-
             _easyCachingProvider = easyCachingProviderFactory.GetCachingProvider("redis1");
         }
 
@@ -81,8 +80,6 @@ namespace UltimateRedditBot.Discord.Modules
             await _queueFactory.AddToQueue(guild.Id, subreddit, Domain.Models.PostType.Image, ((SocketGuildChannel)Context.Channel).Id, amountOfTimes);
         }
 
-
-
         [Command("Queue"), Alias("R-Q")]
         public async Task Queue()
         {
@@ -111,29 +108,6 @@ namespace UltimateRedditBot.Discord.Modules
 
             await _queueFactory.ClearGuildQueue(guildId);
             await SendReplyMessage("Cleared the queue");
-        }
-
-        [Command("Queue-Clear"), Alias("R-cache-set")]
-        public async Task CacheSet(string set)
-        {
-            //await _redisCacheService.SetCacheValueAsync("test", set);
-            var list = await _easyCachingProvider.GetAsync<List<string>>("test");
-            list.Value.Add(set);
-            await _easyCachingProvider.SetAsync<List<string>>("test", list.Value, TimeSpan.FromMinutes(1000));
-        }
-
-        [Command("Queue-Clear"), Alias("R-cache-get")]
-        public async Task CacheGet()
-        {
-            var value = await _easyCachingProvider.GetAsync<List<string>>("test");
-            var values = new StringBuilder();
-
-            foreach (var va in value.Value)
-            {
-                values.Append($" {va}, ");
-            }
-
-            await ReplyAsync(values.ToString());
         }
 
         [Command("r-c"), Alias("R-c")]
