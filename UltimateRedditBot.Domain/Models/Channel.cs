@@ -1,31 +1,27 @@
-﻿using UltimateRedditBot.Domain.Common;
+﻿using System.Collections.Generic;
+using UltimateRedditBot.Domain.Common;
 
 namespace UltimateRedditBot.Domain.Models
 {
-    public class Channel : BaseEntity<ulong>
+    public sealed class Channel : BaseEntity<ulong>
     {
         #region Constructor
+
+        //Empty ctor for ef core
         public Channel()
+        { }
+
+        public Channel(ulong channelId)
         {
-
+            Id = channelId;
         }
-
-        public Channel(int guildId)
-        {
-            GuildId = guildId;
-        }
-
-        #endregion
-
-        #region Methods
 
         #endregion
 
         #region Properties
 
-        public Guild Guild { get; protected set; }
-        public int GuildId { get; protected set; }
-         
+        public IEnumerable<ChannelSubscriptionMapper> ChannelSubscriptionMappers { get; set; }
+
         #endregion
     }
 }

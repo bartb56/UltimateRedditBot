@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UltimateRedditBot.Core.Repository;
 using UltimateRedditBot.Database;
 using UltimateRedditBot.Domain.Models;
@@ -11,15 +12,15 @@ namespace UltimateRedditBot.Core.AppService
 {
     public class GuildAppService : Repository<Guild, ulong>, IGuildAppService
     {
-        public GuildAppService(Context context)
-            : base(context)
+        public GuildAppService(Context context, ILogger<Repository.Repository> logger)
+            : base(context, logger)
         {
 
         }
 
         public async Task<Guild> GetByGuildId(ulong id)
         {
-            return await Queriable().FirstOrDefaultAsync(guild => guild.Id == id);
+            return await Queryable().FirstOrDefaultAsync(guild => guild.Id == id);
         }
 
         public async Task Insert(IEnumerable<ulong> ids)

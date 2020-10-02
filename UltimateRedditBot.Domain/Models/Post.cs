@@ -1,34 +1,21 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
+using Discord;
 using UltimateRedditBot.Domain.Common;
 
 namespace UltimateRedditBot.Domain.Models
 {
-    public class Post : BaseEntity
+    public class Post : BaseEntity<string>
     {
         #region Constructor
 
+        //Emptu ctore for ef core
         public Post()
-        {
-            PostType = PostType.Post;
-
-            if (Url != null)
-            {
-                PostType = PostType.Image;
-
-                var url = Url.ToString();
-
-                if (url.Contains(".gif") || url.Contains("https://gfycat") || url.Contains("https://redgifs"))
-                    PostType = PostType.Gif;
-
-                if (url.Contains(".mp4"))
-                    PostType = PostType.Image;
-            }
-        }
-
+        { }
 
         public Post(string postId, string author, int downs, int ups, bool isOver18, string title, string postLink, Uri thumbnail, string selfText, Uri url, PostType postType)
         {
-            PostId = postId;
+            Id = postId;
             Author = author;
             Downs = downs;
             Ups = ups;
@@ -47,21 +34,45 @@ namespace UltimateRedditBot.Domain.Models
 
         public PostType GetPostType()
         {
-            if (Url != null)
-            {
-                var url = Url.ToString();
+            if (Url is null)
+                return PostType;
 
-                if (url.Contains(".gif") || url.Contains("https://gfycat") || url.Contains("https://redgifs"))
-                    PostType = PostType.Gif;
+            var url = Url.ToString();
 
-                if (url.Contains(".jpg") || url.Contains(".png") || url.Contains(".jpeg"))
-                    PostType = PostType.Gif;
+            if (url.Contains(".gif") || url.Contains("https://gfycat") || url.Contains("https://redgifs"))
+                PostType = PostType.Gif;
 
-                if (url.Contains(".mp4"))
-                    PostType = PostType.Video;
-            }
+            if (url.Contains(".jpg") || url.Contains(".png") || url.Contains(".jpeg"))
+                PostType = PostType.Gif;
+
+            if (url.Contains(".mp4"))
+                PostType = PostType.Video;
 
             return PostType;
+        }
+
+        public Embed Embed(string subreddit)
+        {
+            var thumbsUp = new Emoji("\uD83D\uDC4D");
+            var footer = new EmbedFooterBuilder
+            {
+                Text = $"Posted by: u/{Author} \nPosted in: r/{subreddit} \n👍 {Ups}"
+            };
+
+            var title = Title;
+            if (title.Length > 256)
+                title = title.Substring(256);
+
+            var embedBuilder = new EmbedBuilder
+            {
+                Color = Color.Gold,
+                Title = title,
+                ImageUrl = Url.ToString(),
+                Url = $"https://reddit.com{PostLink}",
+                Footer = footer
+            };
+
+            return embedBuilder.Build();
         }
 
         public void UpdateUpsAndDowns(int downs, int ups)
@@ -73,8 +84,6 @@ namespace UltimateRedditBot.Domain.Models
         #endregion
 
         #region Properties
-
-        public string PostId { get; set; }
 
         public string Author { get; set; }
 

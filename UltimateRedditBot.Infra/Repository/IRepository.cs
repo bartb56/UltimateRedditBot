@@ -6,33 +6,35 @@ using System.Threading.Tasks;
 
 namespace UltimateRedditBot.Infra.Repository
 {
-    public interface IRepository<Entity> : IRepository<Entity, int>
+    public interface IRepository<TEntity> : IRepository<TEntity, int>
     {
 
     }
-    public interface IRepository<Entity, in Key>
+    public interface IRepository<TEntity, in TKey>
     {
 
-        Task<IEnumerable<Entity>> Get(
-        Expression<Func<Entity, bool>> filter = null,
-        Func<IQueryable<Entity>, IOrderedQueryable<Entity>> orderBy = null,
+        Task<IEnumerable<TEntity>> Get(
+        Expression<Func<TEntity, bool>> filter = null,
+        Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
         string includeProperties = "");
-        Task<IEnumerable<Entity>> GetAll();
+        Task<IAsyncEnumerable<TEntity>> GetAll();
 
-        Task Insert(Entity entity);
+        Task Insert(TEntity entity);
 
-        Task Insert(IEnumerable<Entity> entity);
+        Task Insert(IEnumerable<TEntity> entity);
 
-        Task Update(Entity entity);
+        Task Update(TEntity entity);
 
-        Task Delete(Entity entity);
+        Task UpdateRange(IEnumerable<TEntity> entities);
 
-        Task Delete(Key id);
+        Task Delete(TEntity entity);
 
-        IQueryable<Entity> Queriable();
+        Task Delete(IEnumerable<TEntity> entities);
 
-        Task<Entity> GetById(Key id);
+        Task Delete(TKey id);
 
-        Task<int> Count();
+        Task<TEntity> GetById(TKey id);
+
+        int Count();
     }
 }

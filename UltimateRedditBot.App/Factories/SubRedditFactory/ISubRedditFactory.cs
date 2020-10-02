@@ -7,5 +7,7 @@ namespace UltimateRedditBot.App.Factories.SubRedditFactory
     {
         Task<SubReddit> GetSubRedditByName(string name);
 
+        Task<SubReddit> GetById(int id);
+
     }
 }

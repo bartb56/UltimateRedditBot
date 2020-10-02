@@ -1,141 +1,158 @@
-﻿using Discord;
+﻿using System.Collections.Generic;
 using Discord.Commands;
 using Discord.WebSocket;
-using EasyCaching.Core;
-using Microsoft.EntityFrameworkCore.Internal;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using Discord;
 using UltimateRedditBot.App.Constants;
 using UltimateRedditBot.App.Factories.GuildSettingsFactory;
 using UltimateRedditBot.App.Factories.QueueFactory;
-using UltimateRedditBot.Infra.Services;
-using UltimateRedditBot.Infra.Uow;
+using UltimateRedditBot.App.Factories.SubRedditFactory;
+using UltimateRedditBot.App.Factories.SubRedditHistoryFactory;
+using UltimateRedditBot.Domain.Constants;
+using UltimateRedditBot.Domain.Queue;
 
 namespace UltimateRedditBot.Discord.Modules
 {
+    /// <summary>
+    /// The command handler for all the reddit related commands
+    /// </summary>
     public class RedditModule : UltimateCommandModule
     {
         #region Fields
 
-        private readonly DiscordSocketClient _discord;
         private readonly IQueueFactory _queueFactory;
-        private readonly IUnitOfWork _unitOfWork;
         private readonly IGuildSettingsFactory _guildSettingsFactory;
-
-        private readonly IEasyCachingProvider _easyCachingProvider;
-        private readonly IEasyCachingProviderFactory _easyCachingProviderFactory;
+        private readonly ISubRedditHistoryFactory _subRedditHistoryFactory;
+        private readonly ISubRedditFactory _subRedditFactory;
 
         #endregion
 
         #region Constructor
 
-        public RedditModule(
-                    DiscordSocketClient discord, IQueueFactory queueFactory,
-                    IUnitOfWork unitOfWork,
-                    IGuildSettingsFactory guildSettingsFactory,
-
-                    IEasyCachingProviderFactory easyCachingProviderFactory)
+        public RedditModule(IQueueFactory queueFactory,
+            IGuildSettingsFactory guildSettingsFactory, ISubRedditHistoryFactory subRedditHistoryFactory, ISubRedditFactory subRedditFactory)
         {
-            _discord = discord;
             _queueFactory = queueFactory;
-            _unitOfWork = unitOfWork;
             _guildSettingsFactory = guildSettingsFactory;
-
-            
-            _easyCachingProviderFactory = easyCachingProviderFactory;
-            _easyCachingProvider = easyCachingProviderFactory.GetCachingProvider("redis1");
+            _subRedditHistoryFactory = subRedditHistoryFactory;
+            _subRedditFactory = subRedditFactory;
         }
 
         #endregion
 
-
         #region Commands
 
-        [Command("Reddit"), Alias("R"), ]
+        /// <summary>
+        /// Used to get a request a subreddit post.
+        /// </summary>
+        /// <param name="subreddit">requested subreddit</param>
+        /// <returns></returns>
+        [Command("Reddit"), Alias("R")]
         public async Task Reddit(string subreddit)
         {
             await Reddit(subreddit, 1);
         }
 
+        /// <summary>
+        /// Used to request a subreddit post multiple times at once.
+        /// </summary>
+        /// <param name="subreddit">requested subreddit</param>
+        /// <param name="amountOfRequests">requested amount of posts</param>
+        /// <returns></returns>
         [Command("Reddit"), Alias("R")]
-        public async Task Reddit(string subreddit, int amountOfTimes)
+        public async Task Reddit(string subreddit, int amountOfRequests)
         {
-            SocketGuild guild = ((SocketGuildChannel)Context.Channel).Guild;
+            var guild = ((SocketGuildChannel)Context.Channel).Guild;
 
-            var settingsMax = await _guildSettingsFactory.GetGuildSettingByKey<int>(guild.Id, DefaultSettingKeys.Bulk);
-
-            var max = (settingsMax > 0) ? settingsMax : 20;
-
-            if (amountOfTimes > max)
+            //If the amount of requests is more than one ensure that it doesn't exceed the configured max requests.
+            if (amountOfRequests > 1)
             {
-                await SendReplyMessage(string.Format("You can't place more than {0} requests at once.", max));
-                return;
+                var maxBulkSetting = await _guildSettingsFactory.GetGuildSettingByKey<int>(guild.Id, DefaultSettingKeys.Bulk);
+
+                var max = maxBulkSetting > 0 ? maxBulkSetting : 20;
+
+                if (amountOfRequests > max)
+                {
+                    await ReplyAsync($"You can't place more than {max} requests at once.");
+                    return;
+                }
             }
 
             await Context.Channel.TriggerTypingAsync();
-
-            await _queueFactory.AddToQueue(guild.Id, subreddit, Domain.Models.PostType.Image, ((SocketGuildChannel)Context.Channel).Id, amountOfTimes);
+            await _queueFactory.AddToQueue(guild.Id, subreddit, Domain.Models.PostType.Image, ((SocketGuildChannel)Context.Channel).Id, amountOfRequests);
         }
 
+        /// <summary>
+        /// Used to get the current queue.
+        /// </summary>
+        /// <returns></returns>
         [Command("Queue"), Alias("R-Q")]
         public async Task Queue()
         {
             var guildId = ((SocketGuildChannel)Context.Channel).Guild.Id;
 
             var queueItems = await _queueFactory.GetByGuildId(guildId);
-            if (!queueItems.ToList().Any())
-            {
-                await SendReplyMessage("Queue is empty");
-                return;
-            }
 
-            var queueBuilder = new StringBuilder();
-            foreach (var queueItem in queueItems)
+            var embedBuilder = new EmbedBuilder()
             {
-                queueBuilder.Append($"{queueItem.SubRedditId}, {queueItem.PostType}");
-            }
+                Color = EmbedConstants.EmbedColor,
+                Title = $"Queue items in {((SocketGuildChannel)Context.Channel).Guild.Name}",
+                Fields = await PrepareEmbedFieldBuilders(queueItems)
+            };
 
-            await SendReplyMessage(queueBuilder.ToString());
+            await ReplyAsync("", false, embedBuilder.Build());
         }
 
+        private async Task<List<EmbedFieldBuilder>> PrepareEmbedFieldBuilders(IEnumerable<QueueItem> queueItems)
+        {
+            var embedBuilder = new List<EmbedFieldBuilder>();
+
+            foreach (var queueItem in queueItems.GroupBy(queueItem => queueItem.SubRedditId)
+                .Select(group => new
+                {
+                    Subreddit = group.Key,
+                    Count = group.Count()
+                })
+                .OrderBy(x => x.Subreddit))
+            {
+                var subreddit = await _subRedditFactory.GetById(queueItem.Subreddit);
+                embedBuilder.Add(new EmbedFieldBuilder()
+                {
+                    Name = subreddit.Name,
+                    Value = $"{queueItem.Count}, {((queueItem.Count > 1) ? "times" : "time")} in the queue"
+                });
+
+            }
+
+            return embedBuilder;
+        }
+
+        /// <summary>
+        /// Used to clear the current guilds queue.
+        /// </summary>
+        /// <returns></returns>
         [Command("Queue-Clear"), Alias("R-Q-C")]
         public async Task ClearQueue()
         {
             var guildId = ((SocketGuildChannel)Context.Channel).Guild.Id;
 
             await _queueFactory.ClearGuildQueue(guildId);
-            await SendReplyMessage("Cleared the queue");
+            await ReplyAsync("Cleared the queue");
         }
 
-        [Command("r-c"), Alias("R-c")]
+        /// <summary>
+        /// Used to clear the saved subreddits history
+        /// </summary>
+        /// <param name="subReddit"></param>
+        /// <returns></returns>
+        [Command("r-reset"), Alias("R-r")]
         public async Task ClearHistory(string subReddit)
         {
             var guildId = ((SocketGuildChannel)Context.Channel).Guild.Id;
 
-            var guilds = await _unitOfWork.GuildRepository.GetAll();
-            var xt = guilds.FirstOrDefault(x => x.Id == guildId);
-
-            var subreddit = await _unitOfWork.SubRedditRepository.GetSubRedditByName(subReddit);
-            var history = await _unitOfWork.SubRedditHistoryRepository.GetAll();
-
-            await _unitOfWork.SubRedditHistoryRepository.Delete(history.FirstOrDefault(x => x.SubRedditId == subreddit.Id && x.GuildId == xt.Id));
-            _unitOfWork.Commit();
-            await SendReplyMessage("done");
-        }
-
-        [Command("r-invite")]
-        public async Task SendInvite()
-        {
-            await SendReplyMessage("https://discord.com/api/oauth2/authorize?client_id=714492192319733811&permissions=2048&scope=bot");
-            return;
-        }
-
-        private async Task<IUserMessage> SendReplyMessage(string message)
-        {
-            return await ReplyAsync(message);
+            var responseMessage = await _subRedditHistoryFactory.UnSubscribe(guildId, subReddit);
+            await ReplyAsync(responseMessage);
         }
 
         #endregion

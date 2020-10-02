@@ -1,16 +1,17 @@
 ﻿using Discord;
 using Discord.WebSocket;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using UltimateRedditBot.App.Constants;
 using UltimateRedditBot.App.Factories.SubRedditFactory;
+using UltimateRedditBot.Domain.Enums;
 using UltimateRedditBot.Domain.Models;
 using UltimateRedditBot.Domain.Queue;
+using UltimateRedditBot.Infra.AppServices;
 using UltimateRedditBot.Infra.Services;
-using UltimateRedditBot.Infra.Uow;
 
 namespace UltimateRedditBot.App.Factories.QueueFactory
 {
@@ -20,10 +21,11 @@ namespace UltimateRedditBot.App.Factories.QueueFactory
 
         private readonly IQueueService _queueService;
         private readonly ISubRedditFactory _subRedditFactory;
-        private readonly IUnitOfWork _unitOfWork;
         private readonly DiscordSocketClient _discord;
+        private readonly IGuildAppService _guildAppService;
+        private readonly IGuildSettingsAppService _guildSettingsAppService;
 
-        static SemaphoreSlim lazyAddToQueue = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim LazyAddToQueue = new SemaphoreSlim(1, 1);
 
         #endregion
 
@@ -31,13 +33,13 @@ namespace UltimateRedditBot.App.Factories.QueueFactory
 
         public QueueFactory(IQueueService queueService,
             ISubRedditFactory subRedditFactory,
-            IUnitOfWork unitOfWork,
-            DiscordSocketClient discord)
+            DiscordSocketClient discord, IGuildAppService guildAppService, IGuildSettingsAppService guildSettingsAppService)
         {
             _queueService = queueService;
             _subRedditFactory = subRedditFactory;
-            _unitOfWork = unitOfWork;
             _discord = discord;
+            _guildAppService = guildAppService;
+            _guildSettingsAppService = guildSettingsAppService;
         }
 
         #endregion
@@ -46,51 +48,55 @@ namespace UltimateRedditBot.App.Factories.QueueFactory
 
         public async Task AddToQueue(ulong guildId, string subRedditName, PostType post, ulong channelId, int amountOfTimes)
         {
-            await lazyAddToQueue.WaitAsync();
+            await LazyAddToQueue.WaitAsync();
             try
             {
                 var txtChannel = _discord.GetChannel(channelId) as ITextChannel;
+                if (txtChannel is null)
+                    return; //Channel has been removed.
+
                 var subReddit = await GetSubReddit(subRedditName);
                 if (subReddit is null)
                 {
-                    await txtChannel.SendMessageAsync(text: "The subreddit could not be found.");
-                    lazyAddToQueue.Release();
+                    await txtChannel.SendMessageAsync("The subreddit could not be found.");
+                    LazyAddToQueue.Release();
                     return;
                 }
 
-                if(subReddit.IsNsfw && !txtChannel.IsNsfw)
+                if (subReddit.IsNsfw && !txtChannel.IsNsfw)
                 {
-                    await txtChannel.SendMessageAsync(text: "This subreddit can only be used in nsfw channels.");
-                    lazyAddToQueue.Release();
+                    await txtChannel.SendMessageAsync("This subreddit can only be used in nsfw channels.");
+                    LazyAddToQueue.Release();
                     return;
                 }
+
+                var sort = await _guildSettingsAppService.GetGuildSettingByKey<Sort>(guildId,
+                    DefaultSettingKeys.Sort);
 
                 IEnumerable<QueueItem> queueItems = new List<QueueItem>();
                 for(var i = 0; i < amountOfTimes; i++)
-                    queueItems = queueItems.Append(new QueueItem(guildId, subReddit.Id, channelId, post, Guid.NewGuid()));
-                
+                    queueItems = queueItems.Append(new QueueItem(guildId, subReddit.Id, subReddit.Name, channelId, post, Guid.NewGuid(), sort));
+
                 await _queueService.AddToQueueRange(queueItems);
             }
             catch(Exception e)
             {
-
+                Console.WriteLine(e.Message);
             }
             finally
             {
-                lazyAddToQueue.Release();
+                LazyAddToQueue.Release();
             }
-            
         }
 
         public async Task<IEnumerable<QueueItem>> GetByGuildId(ulong guildId)
         {
-            var guild = await _unitOfWork.GuildRepository.GetById(guildId);
-            return await _queueService.GetQueueByGuild(guild);
+            return await _queueService.GetQueueByGuild(guildId);
         }
 
         public async Task ClearGuildQueue(ulong guildId)
         {
-            var guild = await _unitOfWork.GuildRepository.GetById(guildId);
+            var guild = await _guildAppService.GetById(guildId);
             await _queueService.ClearGuildQueue(guild.Id);
         }
 

@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using UltimateRedditBot.Domain.Models;
-using UltimateRedditBot.Infra.Uow;
+using UltimateRedditBot.Infra.AppServices;
 
 namespace UltimateRedditBot.App.Factories.GuildFactory
 {
@@ -10,15 +10,15 @@ namespace UltimateRedditBot.App.Factories.GuildFactory
     {
         #region Fields
 
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly IGuildAppService _guildAppService;
 
         #endregion
 
         #region Constructor
 
-        public GuildFactory(IUnitOfWork unitOfWork)
+        public GuildFactory(IGuildAppService guildAppService)
         {
-            _unitOfWork = unitOfWork;
+            _guildAppService = guildAppService;
         }
 
         #endregion
@@ -27,22 +27,21 @@ namespace UltimateRedditBot.App.Factories.GuildFactory
 
         public async Task Insert(IEnumerable<ulong> guildIds)
         {
-            var guilds = await _unitOfWork.GuildRepository.Get();
+            var guilds = await _guildAppService.Get();
+            var existingGuilds = guilds.ToList();
 
-            guildIds = guildIds.Where(guildId => guilds.FirstOrDefault(x => x.Id == guildId) is null);
-            if (guildIds.Any())
-                await _unitOfWork.GuildRepository.Insert(guildIds.Select(id => new Guild(id)));
+            var allNewGuildIds = guildIds.Where(guildId => existingGuilds.FirstOrDefault(x => x.Id == guildId) is null).ToList();
 
-            _unitOfWork.Commit();
+            if (!allNewGuildIds.Any())
+                return;
+
+            await _guildAppService.Insert(allNewGuildIds.Select(id => new Guild(id)));
         }
 
         public async Task Insert(ulong guildId)
         {
-            await _unitOfWork.GuildRepository.Insert(new Guild(guildId));
-
-            _unitOfWork.Commit();
+            await _guildAppService.Insert(new Guild(guildId));
         }
-
 
         #endregion
     }

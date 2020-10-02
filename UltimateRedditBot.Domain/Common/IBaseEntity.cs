@@ -1,8 +1,8 @@
 ﻿namespace UltimateRedditBot.Domain.Common
 {
-    public interface IBaseEntity<Key>
+    public interface IBaseEntity<TKey>
     {
-        Key Id { get; }
+        TKey Id { get; }
     }
 
     public interface IBaseEntity : IBaseEntity<int>

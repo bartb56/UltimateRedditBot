@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UltimateRedditBot.Core.Constants;
 using UltimateRedditBot.Domain.Queue;
 using UltimateRedditBot.Infra.Services;
@@ -15,14 +16,16 @@ namespace UltimateRedditBot.Core.Services
         #region Fields
 
         private readonly IEasyCachingProvider _easyCachingProvider;
-        private static SemaphoreSlim queueAccessor = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim _queueAccessor = new SemaphoreSlim(1, 1);
+        private readonly ILogger<RedisCacheManager> _logger;
 
         #endregion
 
         #region Constructor
 
-        public RedisCacheManager(IEasyCachingProviderFactory easyCachingProviderFactory)
+        public RedisCacheManager(IEasyCachingProviderFactory easyCachingProviderFactory, ILogger<RedisCacheManager> logger)
         {
+            _logger = logger;
             _easyCachingProvider = easyCachingProviderFactory.GetCachingProvider(CachingConstants.RedisName);
         }
 
@@ -32,22 +35,22 @@ namespace UltimateRedditBot.Core.Services
 
         public async Task<IEnumerable<QueueItem>> GetQueueItems(int? max = null)
         {
-            await queueAccessor.WaitAsync();
+            await _queueAccessor.WaitAsync();
             try
             {
                 var cachedResult = await _easyCachingProvider.GetAsync<IEnumerable<QueueItem>>(CachingConstants.QueueKey);
 
-                if(cachedResult is not null && cachedResult.Value is not null && max.HasValue)
-                    Console.WriteLine($"There are currently: { cachedResult.Value.Count() } in the queue");
-                
+                if (cachedResult is null || cachedResult.Value is null)
+                    return null;
+
                 if(max.HasValue)
-                    return cachedResult.Value;
+                    _logger.Log(LogLevel.Information, $"There are currently: { cachedResult.Value.Count() } in the queue");
 
                 return cachedResult.Value;
             }
             finally
             {
-                queueAccessor.Release();
+                _queueAccessor.Release();
             }
         }
 
@@ -59,7 +62,7 @@ namespace UltimateRedditBot.Core.Services
             var cachedQueueItems = await GetQueueItems();
             cachedQueueItems ??= new List<QueueItem>();
 
-            await queueAccessor.WaitAsync();
+            await _queueAccessor.WaitAsync();
             try
             {
                 var newQueue = queueItems.Concat(cachedQueueItems);
@@ -67,7 +70,7 @@ namespace UltimateRedditBot.Core.Services
             }
             finally
             {
-                queueAccessor.Release();
+                _queueAccessor.Release();
             }
         }
 
@@ -83,9 +86,9 @@ namespace UltimateRedditBot.Core.Services
             queueItemsIds = queueItemsIds.ToList();
 
             var newQueue = cachedQueueItems.ToList();
-            newQueue.RemoveAll(queueItem => queueItemsIds.Contains(queueItem.Id));;
+            newQueue.RemoveAll(queueItem => queueItemsIds.Contains(queueItem.Id));
 
-            await queueAccessor.WaitAsync();
+            await _queueAccessor.WaitAsync();
             try
             {
                 if (!newQueue.Any())
@@ -99,7 +102,7 @@ namespace UltimateRedditBot.Core.Services
             }
             finally
             {
-                queueAccessor.Release();
+                _queueAccessor.Release();
             }
         }
 
@@ -110,7 +113,7 @@ namespace UltimateRedditBot.Core.Services
             if (cachedQueueItems is null)
                 return;
 
-            await queueAccessor.WaitAsync();
+            await _queueAccessor.WaitAsync();
             try
             {
                 var newQueue = cachedQueueItems.Where(x => x.GuildId != guildId).ToList();
@@ -126,13 +129,13 @@ namespace UltimateRedditBot.Core.Services
             }
             finally
             {
-                queueAccessor.Release();
+                _queueAccessor.Release();
             }
         }
 
         public async Task<bool> Exists()
         {
-            await queueAccessor.WaitAsync();
+            await _queueAccessor.WaitAsync();
             try
             {
                 var cachedResult = await _easyCachingProvider.ExistsAsync(CachingConstants.QueueKey);
@@ -141,7 +144,7 @@ namespace UltimateRedditBot.Core.Services
             }
             finally
             {
-                queueAccessor.Release();
+                _queueAccessor.Release();
             }
         }
 

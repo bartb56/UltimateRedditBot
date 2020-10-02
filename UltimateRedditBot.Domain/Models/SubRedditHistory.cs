@@ -11,7 +11,7 @@ namespace UltimateRedditBot.Domain.Models
 
         }
 
-        public SubRedditHistory(int postId, ulong guildId, int subRedditId)
+        public SubRedditHistory(string postId, ulong guildId, int subRedditId)
         {
             LastPostId = postId;
             GuildId = guildId;
@@ -22,7 +22,7 @@ namespace UltimateRedditBot.Domain.Models
 
         #region Methods
 
-        public void UpdateLastPostId(int postId)
+        public void UpdateLastPostId(string postId)
         {
             LastPostId = postId;
         }
@@ -32,13 +32,13 @@ namespace UltimateRedditBot.Domain.Models
         #region Properties
 
         public Post LastPost { get; set; }
-        public int LastPostId { get; protected set; }
+        public string LastPostId { get; protected set; }
 
-        public virtual Guild Guild { get; set; }
+        public Guild Guild { get; set; }
         public ulong GuildId { get; protected set; }
 
 
-        public virtual SubReddit SubReddit { get; set; }
+        public SubReddit SubReddit { get; set; }
         public int SubRedditId { get; protected set; }
 
         #endregion

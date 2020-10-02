@@ -1,5 +1,4 @@
-﻿using Discord;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using UltimateRedditBot.Domain.Models;
 using UltimateRedditBot.Domain.Queue;

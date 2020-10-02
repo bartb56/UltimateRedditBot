@@ -1,6 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
+using UltimateRedditBot.Domain.Enums;
 using UltimateRedditBot.Domain.Models;
-using UltimateRedditBot.Domain.Queue;
 
 namespace UltimateRedditBot.Infra.Services
 {
@@ -8,6 +9,8 @@ namespace UltimateRedditBot.Infra.Services
     {
         Task<SubReddit> GetSubRedditByName(string name);
 
-        Task<PostDto> GetPost(QueueItem queueItem, string lastUsedName, string subredditName);
+        Task<Post> GetNewPost(string subRedditName, Sort sort);
+
+        Task<PostDto> GetOldPost(string subRedditName, string previousName, Sort sort, PostType postType, Guid id);
     }
 }

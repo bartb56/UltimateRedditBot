@@ -4,12 +4,7 @@ using UltimateRedditBot.Infra.Repository;
 
 namespace UltimateRedditBot.Infra.AppServices
 {
-    public interface IPostAppService : IRepository<Post>
+    public interface IPostAppService : IRepository<Post, string>
     {
-        Task<bool> IsUniquePost(Post post);
-
-        Task<Post> GetNextPost(int previousPostId, int subRedditId);
-
-        Task<Post> GetByPostId(string postId);
     }
 }

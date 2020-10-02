@@ -3,19 +3,14 @@ using System.Collections.Generic;
 
 namespace UltimateRedditBot.Domain.Queue
 {
-    public class Queue : IDisposable
+    public class Queue
     {
         public Queue()
         {
-            QueueItems = new List<QueueItem>();
         }
 
+        public bool HasNewQueueItems { get; set; }
 
         public List<QueueItem> QueueItems { get; set; }
-
-        public void Dispose()
-        {
-            QueueItems = null;
-        }
     }
 }
