@@ -35,8 +35,9 @@ namespace UltimateRedditBot.Core.Services
 
         public async Task HandleSubscriptions()
         {
-            var subscriptions = await _subscriptionAppService.GetAllIncluding();
+            var allSubscriptions = await _subscriptionAppService.GetAllIncluding();
 
+            var subscriptions = allSubscriptions.ToList();
             if (!subscriptions.Any())
                 return;
 
@@ -51,7 +52,7 @@ namespace UltimateRedditBot.Core.Services
             var postRequests = subscriptions.Select(GetSubscriptionPost).ToList();
 
             var result = await Task.WhenAll(postRequests);
-            return result?.Where(subscription => subscription is not null);
+            return result.Where(subscription => subscription is not null);
         }
 
         private async Task<Subscription> GetSubscriptionPost(Subscription subscription)

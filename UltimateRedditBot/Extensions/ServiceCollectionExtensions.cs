@@ -106,11 +106,11 @@ namespace UltimateRedditBot.Extensions
         private static void AddUltimateServices(this IServiceCollection services)
         {
             services
-                    .AddSingleton<IRedditApiService, RedditApiService>()
-                    .AddSingleton<ISubscriptionService, SubscriptionService>()
-                    .AddSingleton<IQueueService, QueueService>()
-                    .AddSingleton<IChannelAppService, ChannelAppService>()
-                    .AddSingleton<IRedisCacheManager, RedisCacheManager>();
+                .AddSingleton<IRedditApiService, RedditApiService>()
+                .AddSingleton<ISubscriptionService, SubscriptionService>()
+                .AddSingleton<IQueueService, QueueService>()
+                .AddSingleton<IChannelAppService, ChannelAppService>()
+                .AddSingleton<IQueueManagerService, QueueManagerService>();
 
         }
 

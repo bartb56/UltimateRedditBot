@@ -7,8 +7,6 @@ namespace UltimateRedditBot.Infra.AppServices
 {
     public interface IChannelSubscriptionMapperAppService : IRepository<ChannelSubscriptionMapper>
     {
-        Task<IEnumerable<ChannelSubscriptionMapper>> GetBySubscriptionId(int subscriptionId);
-
         Task<IEnumerable<ChannelSubscriptionMapper>> GetByChannelId(ulong channelId);
 
         Task<ChannelSubscriptionMapper> GetByChannelIdAndSubscriptionId(ulong channelId, int subscriptionId);

@@ -17,7 +17,7 @@ namespace UltimateRedditBot.Infra.Repository
         Expression<Func<TEntity, bool>> filter = null,
         Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
         string includeProperties = "");
-        Task<IAsyncEnumerable<TEntity>> GetAll();
+        IAsyncEnumerable<TEntity> GetAll();
 
         Task Insert(TEntity entity);
 

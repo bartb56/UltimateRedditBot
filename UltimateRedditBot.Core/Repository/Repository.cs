@@ -11,9 +11,10 @@ using UltimateRedditBot.Infra.Repository;
 
 namespace UltimateRedditBot.Core.Repository
 {
+    //This class is only used to initialize the logger //TODO find a better way.
+
     public class Repository
     {
-
     }
 
     public class Repository<TEntity> : Repository<TEntity, int>
@@ -107,7 +108,7 @@ namespace UltimateRedditBot.Core.Repository
             await SaveChanges();
         }
 
-        public virtual async Task<IAsyncEnumerable<TEntity>> GetAll()
+        public virtual IAsyncEnumerable<TEntity> GetAll()
         {
             IQueryable<TEntity> query = _dbSet;
             return query.ToAsyncEnumerable();

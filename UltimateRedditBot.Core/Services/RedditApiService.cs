@@ -20,7 +20,6 @@ namespace UltimateRedditBot.Core.Services
 
         private readonly IHttpClientFactory _clientFactory;
         private readonly ILogger<RedditApiService> _logger;
-        //private readonly ILogger _logger;
 
         #endregion
 
@@ -59,15 +58,21 @@ namespace UltimateRedditBot.Core.Services
 
         public async Task<PostDto> GetOldPost(string subRedditName, string previousName, Sort sort, PostType postType, Guid id)
         {
-            var post = await Process(RedditApiConstants.MaximumAttempts, subRedditName, "after", previousName, sort, postType);
-            if (post is null)
-                return null;
-
-            return new PostDto
+            var postDto = await Task.Run(async () =>
             {
-                Post = post,
-                QueueItemId = id
-            };
+
+                var post = await Process(RedditApiConstants.MaximumAttempts, subRedditName, "after", previousName, sort, postType);
+                if (post is null)
+                    return null;
+
+                return new PostDto
+                {
+                    Post = post,
+                    QueueItemId = id
+                };
+
+            });
+            return postDto;
         }
 
         private async Task<Post> Process(int maximumAttempts, string subRedditName, string beforeOrAfter, string previousName, Sort sort, PostType postType = PostType.Image)
@@ -86,7 +91,7 @@ namespace UltimateRedditBot.Core.Services
                 }
 
                 var responseBody = await request.Content.ReadAsStringAsync();
-                var post = ProccessRequest(responseBody, out previousName, postType);
+                var post = ProcessRequest(responseBody, out previousName, postType);
 
                 if (post is not null)
                     return post;
@@ -98,7 +103,7 @@ namespace UltimateRedditBot.Core.Services
 
         #region Utils
 
-        private static Post ProccessRequest(string request, out string previousPostName, PostType postType)
+        private static Post ProcessRequest(string request, out string previousPostName, PostType postType)
         {
             previousPostName = string.Empty;
 
@@ -154,13 +159,12 @@ namespace UltimateRedditBot.Core.Services
 
                 var isOver18 = (bool)baseElement.over18;
 
-                //throw new Exception("u fked up");
                 return new SubReddit(name, isOver18);
 
             }
             catch(Exception e)
             {
-               //_logger.LogError(e, " encountered an error while parsing the subreddit");
+               _logger.LogError(e, " encountered an error while parsing the subreddit");
             }
 
             return null;

@@ -12,8 +12,6 @@ namespace UltimateRedditBot.Infra.AppServices
 
         Task<Subscription> AddIfNotExisting(int subRedditId, Sort sort);
 
-        Task<Subscription> GetBySubRedditIdAndSort(int subRedditId, Sort sort);
-
         Task<Subscription> GetBySubRedditAndChannelId(int subRedditId, ulong channelId);
     }
 }

@@ -28,11 +28,6 @@ namespace UltimateRedditBot.App.Factories.GuildSettingsFactory
 
         #region Methods
 
-        public async Task<string> GetGuildSettingByKey(ulong guildId, string key)
-        {
-            return await GetGuildSettingByKey<string>(guildId, key);
-        }
-
         public async Task<TObj> GetGuildSettingByKey<TObj>(ulong guildId, string key)
         {
             return await _guildSettingsAppService.GetGuildSettingByKey<TObj>(guildId, key);
@@ -46,7 +41,7 @@ namespace UltimateRedditBot.App.Factories.GuildSettingsFactory
             return await SaveChanges<string>(guildId, key, value);
         }
 
-        public async Task<bool> SaveChanges<TObj>(ulong guildId, string key, TObj value)
+        private async Task<bool> SaveChanges<TObj>(ulong guildId, string key, TObj value)
         {
             if (AllowedKeys.FirstOrDefault(allowedKey => allowedKey.Equals(key, StringComparison.OrdinalIgnoreCase)) ==
                 null) return false;

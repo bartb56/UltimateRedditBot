@@ -32,7 +32,7 @@ namespace UltimateRedditBot.App.Factories.SubRedditHistoryFactory
             if (subreddit is null)
                 return "subreddit doesn't exist";
 
-            var historiesTask = await _subRedditHistoryAppService.GetAll();
+            var historiesTask = _subRedditHistoryAppService.GetAll();
 
             var histories = await historiesTask.ToListAsync();
             var history = histories.FirstOrDefault(x => x.SubRedditId == subreddit.Id && x.GuildId == guildId);

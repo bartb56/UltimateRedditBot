@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using UltimateRedditBot.Domain.Models;
+﻿using UltimateRedditBot.Domain.Models;
 using UltimateRedditBot.Infra.Repository;
 
 namespace UltimateRedditBot.Infra.AppServices

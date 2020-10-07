@@ -92,13 +92,14 @@ namespace UltimateRedditBot.Discord.Modules
         {
             var guildId = ((SocketGuildChannel)Context.Channel).Guild.Id;
 
-            var queueItems = await _queueFactory.GetByGuildId(guildId);
+            var queueItems = _queueFactory.GetByGuildId(guildId).ToList();
 
             var embedBuilder = new EmbedBuilder()
             {
                 Color = EmbedConstants.EmbedColor,
                 Title = $"Queue items in {((SocketGuildChannel)Context.Channel).Guild.Name}",
-                Fields = await PrepareEmbedFieldBuilders(queueItems)
+                Fields = await PrepareEmbedFieldBuilders(queueItems),
+                Footer = PrepareFooterBuilder(queueItems.LongCount())
             };
 
             await ReplyAsync("", false, embedBuilder.Build());
@@ -117,7 +118,7 @@ namespace UltimateRedditBot.Discord.Modules
                 .OrderBy(x => x.Subreddit))
             {
                 var subreddit = await _subRedditFactory.GetById(queueItem.Subreddit);
-                embedBuilder.Add(new EmbedFieldBuilder()
+                embedBuilder.Add(new EmbedFieldBuilder
                 {
                     Name = subreddit.Name,
                     Value = $"{queueItem.Count}, {((queueItem.Count > 1) ? "times" : "time")} in the queue"
@@ -128,6 +129,10 @@ namespace UltimateRedditBot.Discord.Modules
             return embedBuilder;
         }
 
+        private static EmbedFooterBuilder PrepareFooterBuilder(long amountOfItemsInQueue)
+            => new EmbedFooterBuilder().WithText($"Total: {amountOfItemsInQueue}");
+
+
         /// <summary>
         /// Used to clear the current guilds queue.
         /// </summary>
@@ -135,10 +140,19 @@ namespace UltimateRedditBot.Discord.Modules
         [Command("Queue-Clear"), Alias("R-Q-C")]
         public async Task ClearQueue()
         {
-            var guildId = ((SocketGuildChannel)Context.Channel).Guild.Id;
+            var channel = ((SocketGuildChannel)Context.Channel);
 
-            await _queueFactory.ClearGuildQueue(guildId);
+            _queueFactory.ClearChannelQueue(channel.Id);
             await ReplyAsync("Cleared the queue");
+        }
+
+        [Command("Queue-Clear"), Alias("R-Q-C")]
+        public async Task RemoveSubredditFromQueue(string subreddit)
+        {
+            var channel = (SocketGuildChannel) Context.Channel;
+
+            await _queueFactory.RemoveSubredditFromQueue(channel.Id, subreddit);
+            await ReplyAsync("Removed the subreddit from the queue");
         }
 
         /// <summary>

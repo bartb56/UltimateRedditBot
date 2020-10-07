@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using UltimateRedditBot.Core.Repository;
 using UltimateRedditBot.Database;
 using UltimateRedditBot.Domain.Models;
@@ -13,11 +12,6 @@ namespace UltimateRedditBot.Core.AppService
             : base(context, logger)
         {
 
-        }
-
-        public async Task<bool> IsUniquePost(Post newPost)
-        {
-            return await GetById(newPost.Id) is null;
         }
     }
 }

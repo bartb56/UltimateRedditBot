@@ -43,9 +43,9 @@ namespace UltimateRedditBot.Core.AppService
 
         public async Task<Subscription> GetBySubRedditAndChannelId(int subRedditId, ulong channelId)
         {
-            var subscriptions = await GetBySubRedditId(subRedditId);
+            var subscriptions = GetBySubRedditId(subRedditId);
 
-            var subscription = subscriptions.FirstOrDefault(
+            var subscription = await subscriptions.FirstOrDefaultAsync(
                 x => x.ChannelSubscriptionMappers.FirstOrDefault(y => y.ChannelId == channelId) != null);
 
             return subscription ?? subscriptions.FirstOrDefault();
@@ -57,7 +57,7 @@ namespace UltimateRedditBot.Core.AppService
                 subscription.SubRedditId == subRedditId && subscription.Sort == sort);
         }
 
-        private async Task<IQueryable<Subscription>> GetBySubRedditId(int subRedditId)
+        private IQueryable<Subscription> GetBySubRedditId(int subRedditId)
         {
             return Queryable().Include(subscription => subscription.ChannelSubscriptionMappers)
                 .Where(subscription => subscription.SubRedditId == subRedditId);

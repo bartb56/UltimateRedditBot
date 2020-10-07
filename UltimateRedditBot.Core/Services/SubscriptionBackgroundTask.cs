@@ -38,7 +38,9 @@ namespace UltimateRedditBot.Core.Services
 
         public override Task StartAsync(CancellationToken cancellationToken)
         {
+#pragma warning disable 4014
             ExecuteAsync(cancellationToken);
+#pragma warning restore 4014
             return Task.CompletedTask;
         }
 

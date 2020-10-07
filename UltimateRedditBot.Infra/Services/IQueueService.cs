@@ -6,12 +6,6 @@ namespace UltimateRedditBot.Infra.Services
 {
     public interface IQueueService
     {
-        Task AddToQueueRange(IEnumerable<QueueItem> queueItem);
-
-        Task<IEnumerable<QueueItem>> GetQueueByGuild(ulong guildId);
-
-        Task ClearGuildQueue(ulong guildId);
-
-        Task ProcessQueue();
+        Task ProcessQueue(IAsyncEnumerable<QueueItem> queueItems);
     }
 }

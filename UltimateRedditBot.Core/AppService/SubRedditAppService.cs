@@ -17,7 +17,7 @@ namespace UltimateRedditBot.Core.AppService
         {
         }
 
-        public override async Task<IAsyncEnumerable<SubReddit>> GetAll()
+        public override IAsyncEnumerable<SubReddit> GetAll()
         {
             return Queryable().Include(x => x.SubRedditHistories).ThenInclude(x => x.LastPost).ToAsyncEnumerable();
         }
