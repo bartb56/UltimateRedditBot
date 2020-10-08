@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UltimateRedditBot.Core.Repository;
 using UltimateRedditBot.Database;
 using UltimateRedditBot.Domain.Models;
@@ -20,8 +21,8 @@ namespace UltimateRedditBot.Core.AppService
 
         #region Constructor
 
-        public GuildSettingsAppService(Context context, IGuildAppService guildAppService)
-            : base(context)
+        public GuildSettingsAppService(Context context, IGuildAppService guildAppService, ILogger<Repository.Repository> logger)
+            : base(context, logger)
         {
             _guildAppService = guildAppService;
         }
@@ -39,12 +40,14 @@ namespace UltimateRedditBot.Core.AppService
         {
             var settings = await GetGuildBySettings(guildId);
 
-            if (settings == null)
-                return default(TObj);
+            var setting = settings?.FirstOrDefault(x => x.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
+            if (setting is null)
+                return default;
 
-            var setting = settings.FirstOrDefault(setting => setting.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
-            if (setting == null)
-                return default(TObj);
+            if (typeof(TObj).BaseType == typeof(Enum))
+            {
+                return (TObj)Enum.Parse(typeof(TObj), setting.Value, true);
+            }
 
             return (TObj)Convert.ChangeType(setting.Value, typeof(TObj));
         }
@@ -56,56 +59,48 @@ namespace UltimateRedditBot.Core.AppService
 
         public async Task SaveChanges<TObj>(ulong guildId, string key, TObj value)
         {
-            var guild = await _guildAppService.GetByGuildId(guildId);
-
             var setting = await GetGuildSetting(guildId, key);
 
-            if (setting is null && value is not null)
+            switch (setting)
             {
-                setting = new GuildSettings
-                {
-                    GuildId = guild.Id,
-                    Key = key,
-                    Value = value.ToString()
-                };
+                case null when value is not null:
+                    setting = new GuildSettings
+                    {
+                        GuildId = guildId,
+                        Key = key,
+                        Value = value.ToString()
+                    };
 
-                await Insert(setting);
+                    await Insert(setting);
+                    break;
+                case not null when value is not null:
+                    setting.Value = value.ToString();
+                    await Update(setting);
+                    break;
+                case not null when true:
+                    await Delete(setting);
+                    break;
             }
-            else if (setting is not null && value is not null)
-            {
-                setting.Value = value.ToString();
-                await Update(setting);
-            }
-            else if (setting is not null && value is null)
-            {
-                await Delete(setting);
-            }
-
-            SaveChanges();
         }
 
-        public async Task<GuildSettings> GetGuildSetting(ulong guildId, string key)
+        private async Task<GuildSettings> GetGuildSetting(ulong guildId, string key)
         {
             var guildSettings = await GetGuildBySettings(guildId);
-
-            if (guildSettings == null)
-                return null;
-
-            return guildSettings.FirstOrDefault(setting => setting.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
+            return guildSettings?.FirstOrDefault(setting => setting.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task<IEnumerable<GuildSettings>> GetGuildBySettings(ulong guildId)
         {
             var guild = await _guildAppService.GetByGuildId(guildId);
 
-            return Queriable()?.Where(setting => setting.GuildId == guild.Id)?.AsQueryable();
+            return Queryable()?.Where(setting => setting.GuildId == guild.Id).AsQueryable();
         }
 
         #endregion
 
         public async Task<GuildSettings> GetByGuildId(ulong guildId)
         {
-            return await Queriable().Include(x => x.Guild).FirstOrDefaultAsync(guild => guild.Guild.Id == guild.Id);
+            return await Queryable().FirstOrDefaultAsync(guildSettings => guildSettings.GuildId == guildId);
         }
     }
 }

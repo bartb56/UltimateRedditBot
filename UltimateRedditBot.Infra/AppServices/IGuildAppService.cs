@@ -1,14 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using UltimateRedditBot.Domain.Models;
 using UltimateRedditBot.Infra.Repository;
 
 namespace UltimateRedditBot.Infra.AppServices
 {
-    public interface IGuildAppService : IRepository<Guild>
+    public interface IGuildAppService : IRepository<Guild, ulong>
     {
-        Task<Guild> GetByGuildId(ulong guildId);
-
-        Task Insert(IEnumerable<ulong> guildIds);
+        Task<Guild> GetByGuildId(ulong id);
     }
 }

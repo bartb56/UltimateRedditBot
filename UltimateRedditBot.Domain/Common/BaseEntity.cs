@@ -4,10 +4,10 @@ using System.ComponentModel.DataAnnotations;
 namespace UltimateRedditBot.Domain.Common
 {
     [Serializable]
-    public abstract class BaseEntity<Key> : IBaseEntity<Key>
+    public abstract class BaseEntity<TKey> : IBaseEntity<TKey>
     {
         [Key]
-        public virtual Key Id { get; set; }
+        public virtual TKey Id { get; set; }
     }
 
     [Serializable]

@@ -9,45 +9,47 @@ using UltimateRedditBot.Database;
 namespace UltimateRedditBot.Database.Migrations
 {
     [DbContext(typeof(Context))]
-    [Migration("20200910195115_SettingDoneProperly")]
-    partial class SettingDoneProperly
+    [Migration("20200922200930_Init")]
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "3.1.7")
+                .UseIdentityColumns()
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
-                .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                .HasAnnotation("ProductVersion", "5.0.0-preview.8.20407.4");
 
             modelBuilder.Entity("UltimateRedditBot.Domain.Models.Channel", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<decimal>("ChannelId")
                         .HasColumnType("decimal(20,0)");
 
-                    b.Property<int>("GuildId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("GuildId");
 
                     b.ToTable("Channels");
                 });
 
+            modelBuilder.Entity("UltimateRedditBot.Domain.Models.ChannelSubscriptionMapper", b =>
+                {
+                    b.Property<decimal>("ChannelId")
+                        .HasColumnType("decimal(20,0)");
+
+                    b.Property<int>("SubscriptionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ChannelId", "SubscriptionId");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.ToTable("ChannelSubscriptionMapper");
+                });
+
             modelBuilder.Entity("UltimateRedditBot.Domain.Models.Guild", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<decimal>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<decimal>("GuildId")
                         .HasColumnType("decimal(20,0)");
 
                     b.HasKey("Id");
@@ -60,10 +62,10 @@ namespace UltimateRedditBot.Database.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .UseIdentityColumn();
 
-                    b.Property<int>("GuildId")
-                        .HasColumnType("int");
+                    b.Property<decimal>("GuildId")
+                        .HasColumnType("decimal(20,0)");
 
                     b.Property<string>("Key")
                         .HasColumnType("nvarchar(max)");
@@ -80,10 +82,8 @@ namespace UltimateRedditBot.Database.Migrations
 
             modelBuilder.Entity("UltimateRedditBot.Domain.Models.Post", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Author")
                         .HasColumnType("nvarchar(max)");
@@ -93,9 +93,6 @@ namespace UltimateRedditBot.Database.Migrations
 
                     b.Property<bool>("IsOver18")
                         .HasColumnType("bit");
-
-                    b.Property<string>("PostId")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PostLink")
                         .HasColumnType("nvarchar(max)");
@@ -133,13 +130,16 @@ namespace UltimateRedditBot.Database.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .UseIdentityColumn();
 
                     b.Property<bool>("IsNsfw")
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Sort")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -151,13 +151,13 @@ namespace UltimateRedditBot.Database.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .UseIdentityColumn();
 
-                    b.Property<int>("GuildId")
-                        .HasColumnType("int");
+                    b.Property<decimal>("GuildId")
+                        .HasColumnType("decimal(20,0)");
 
-                    b.Property<int>("LastPostId")
-                        .HasColumnType("int");
+                    b.Property<string>("LastPostId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("SubRedditId")
                         .HasColumnType("int");
@@ -173,11 +173,37 @@ namespace UltimateRedditBot.Database.Migrations
                     b.ToTable("SubRedditHistories");
                 });
 
-            modelBuilder.Entity("UltimateRedditBot.Domain.Models.Channel", b =>
+            modelBuilder.Entity("UltimateRedditBot.Domain.Models.Subscription", b =>
                 {
-                    b.HasOne("UltimateRedditBot.Domain.Models.Guild", "Guild")
-                        .WithMany("Channels")
-                        .HasForeignKey("GuildId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .UseIdentityColumn();
+
+                    b.Property<string>("LastPostName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SubRedditId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubRedditId");
+
+                    b.ToTable("Subscriptions");
+                });
+
+            modelBuilder.Entity("UltimateRedditBot.Domain.Models.ChannelSubscriptionMapper", b =>
+                {
+                    b.HasOne("UltimateRedditBot.Domain.Models.Channel", "Channel")
+                        .WithMany("ChannelSubscriptionMappers")
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UltimateRedditBot.Domain.Models.Subscription", "Subscription")
+                        .WithMany("ChannelSubscriptionMappers")
+                        .HasForeignKey("SubscriptionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -210,12 +236,19 @@ namespace UltimateRedditBot.Database.Migrations
 
                     b.HasOne("UltimateRedditBot.Domain.Models.Post", "LastPost")
                         .WithMany()
-                        .HasForeignKey("LastPostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("LastPostId");
 
                     b.HasOne("UltimateRedditBot.Domain.Models.SubReddit", "SubReddit")
                         .WithMany("SubRedditHistories")
+                        .HasForeignKey("SubRedditId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("UltimateRedditBot.Domain.Models.Subscription", b =>
+                {
+                    b.HasOne("UltimateRedditBot.Domain.Models.SubReddit", "SubReddit")
+                        .WithMany()
                         .HasForeignKey("SubRedditId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

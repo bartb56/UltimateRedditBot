@@ -4,126 +4,134 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UltimateRedditBot.Database;
 using UltimateRedditBot.Domain.Common;
 using UltimateRedditBot.Infra.Repository;
 
 namespace UltimateRedditBot.Core.Repository
 {
-    public class Repository<Entity> : Repository<Entity, int>, IRepository<Entity, int>
-        where Entity : class, IBaseEntity<int>
+    //This class is only used to initialize the logger //TODO find a better way.
+
+    public class Repository
     {
-        public Repository(Context context)
-            : base(context)
+    }
+
+    public class Repository<TEntity> : Repository<TEntity, int>
+        where TEntity : class, IBaseEntity<int>
+    {
+        protected Repository(Context context, ILogger<Repository> logger)
+            : base(context, logger)
         {
         }
     }
 
-    public class Repository<Entity, Key> : IRepository<Entity, Key>
-        where Entity : class, IBaseEntity<Key>
+    public class Repository<TEntity, TKey> : IRepository<TEntity, TKey>
+        where TEntity : class, IBaseEntity<TKey>
     {
-        internal Context context;
-        internal DbSet<Entity> dbSet;
+        private readonly Context _context;
+        private readonly DbSet<TEntity> _dbSet;
+        private readonly ILogger _logger;
 
-        public Repository(Context context)
+        protected Repository(Context context, ILogger<Repository> logger)
         {
-           this.context = context;
-           dbSet = context.Set<Entity>();
+            _context = context;
+            _logger = logger;
+            _dbSet = context.Set<TEntity>();
         }
 
-        public virtual async Task<IEnumerable<Entity>> Get(
-        Expression<Func<Entity, bool>> filter = null,
-        Func<IQueryable<Entity>, IOrderedQueryable<Entity>> orderBy = null,
-        string includeProperties = "")
+        public virtual async Task<IEnumerable<TEntity>> Get(
+            Expression<Func<TEntity, bool>> filter = null,
+            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
+            string includeProperties = "")
         {
-            IQueryable<Entity> query = dbSet;
+            IQueryable<TEntity> query = _dbSet;
 
             if (filter != null)
-            {
                 query = query.Where(filter);
-            }
 
             if (includeProperties != null)
-            {
-                foreach (var includeProperty in includeProperties.Split
-                (new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    query = query.Include(includeProperty);
-                }
-            }
-
+                query = includeProperties.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries).Aggregate(query, (current, includeProperty) => current.Include(includeProperty));
 
             if (orderBy != null)
-            {
                 return orderBy(query).ToList();
-            }
-            else
-            {
-                return await query.ToListAsync();
-            }
-        }
-
-        public async virtual Task<Entity> GetById(Key id)
-        {
-            return await dbSet.FindAsync(id);
-        }
-
-        public async virtual Task Insert(Entity entity)
-        {
-            await dbSet.AddAsync(entity);
-        }
-
-        public async Task Insert(IEnumerable<Entity> entity)
-        {
-            await dbSet.AddRangeAsync(entity);
-        }
-
-        public async virtual Task Delete(Key id)
-        {
-            var entity = await GetById(id);
-            await Delete(entity); 
-        }
-
-        public async virtual Task Delete(Entity entity)
-        {
-            if (context.Entry(entity).State == EntityState.Detached)
-            {
-                dbSet.Attach(entity);
-            }
-            dbSet.Remove(entity);
-        }
-
-        public async virtual Task Update(Entity entity)
-        {
-            dbSet.Attach(entity);
-            context.Entry(entity).State = EntityState.Modified;
-        }
-
-        public async virtual Task<IEnumerable<Entity>> GetAll()
-        {
-            IQueryable<Entity> query = dbSet;
 
             return await query.ToListAsync();
         }
 
-        public virtual void SaveChanges()
+        public virtual async Task<TEntity> GetById(TKey id)
+        {
+            var entity = await _dbSet.FindAsync(id);
+            return entity;
+        }
+
+        public async Task Insert(TEntity entity)
+        {
+            await _dbSet.AddAsync(entity);
+            await SaveChanges();
+        }
+
+        public virtual async Task Insert(IEnumerable<TEntity> entity)
+        {
+            await _dbSet.AddRangeAsync(entity);
+            await SaveChanges();
+        }
+
+        public virtual async Task Delete(TKey id)
+        {
+            var entity = await _dbSet.FindAsync(id);
+            await Delete(entity);
+            await SaveChanges();
+        }
+
+        public async Task Delete(TEntity entity)
+        {
+            _dbSet.Remove(entity);
+            await SaveChanges();
+        }
+
+        public async Task Delete(IEnumerable<TEntity> entities)
+        {
+            _dbSet.RemoveRange(entities);
+            await SaveChanges();
+        }
+
+        public async Task Update(TEntity entity)
+        {
+            _dbSet.Update(entity);
+            await SaveChanges();
+        }
+
+        public async Task UpdateRange(IEnumerable<TEntity> entities)
+        {
+            _dbSet.UpdateRange(entities);
+            await SaveChanges();
+        }
+
+        public virtual IAsyncEnumerable<TEntity> GetAll()
+        {
+            IQueryable<TEntity> query = _dbSet;
+            return query.ToAsyncEnumerable();
+        }
+
+        protected IQueryable<TEntity> Queryable()
+        {
+            return _dbSet.AsQueryable();
+        }
+
+        private async Task SaveChanges()
         {
             try
             {
-                context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                _logger.Log(LogLevel.Critical, e, "Error saving changes");
             }
         }
 
-        public IQueryable<Entity> Queriable()
-        {
-            return dbSet.AsQueryable();
-        }
-
-        public async Task<int> Count()
-            => dbSet.Count();
+        public int Count()
+            => _dbSet.Count();
     }
 }

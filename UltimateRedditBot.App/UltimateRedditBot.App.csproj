@@ -6,10 +6,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.7" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="3.1.7" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="3.1.7" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.7" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0-rc.1.20451.14" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="5.0.0-rc.1.20451.14" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0-rc.1.20451.14" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.0-rc.1.20451.14" />
   </ItemGroup>
 
   <ItemGroup>

@@ -5,10 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UltimateRedditBot.Core.Constants;
 using UltimateRedditBot.Domain.Api;
+using UltimateRedditBot.Domain.Enums;
 using UltimateRedditBot.Domain.Models;
-using UltimateRedditBot.Domain.Queue;
 using UltimateRedditBot.Infra.Services;
 
 namespace UltimateRedditBot.Core.Services
@@ -17,11 +18,19 @@ namespace UltimateRedditBot.Core.Services
     {
         #region Fields
 
-        private readonly HttpClient _client = new HttpClient();
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly ILogger<RedditApiService> _logger;
 
         #endregion
 
         #region Constructor
+
+        public RedditApiService(IHttpClientFactory clientFactory, ILogger<RedditApiService> logger)
+        {
+            _clientFactory = clientFactory;
+            _logger = logger;
+            //_logger = logger;
+        }
 
         #endregion
 
@@ -29,47 +38,112 @@ namespace UltimateRedditBot.Core.Services
 
         public async Task<SubReddit> GetSubRedditByName(string name)
         {
-            var request = await _client.GetAsync(string.Format(RedditApiConstants.SearchSubRedditByNameUrl, name));
+            var client = _clientFactory.CreateClient();
+            var request = await client.GetAsync(string.Format(RedditApiConstants.SearchSubRedditByNameUrl, name));
 
             if (!request.IsSuccessStatusCode)
+            {
+                _logger.LogError($"Getting a subreddit by name failed. name: {name}, error: {request.StatusCode}");
                 return null;
+            }
 
             var responseBody = await request.Content.ReadAsStringAsync();
             return ParseSubReddit(name, responseBody);
         }
-        
-        public async Task<PostDto> GetPost(QueueItem queueItem, string lastUsedName, string subredditName)
+
+        public async Task<Post> GetNewPost(string subRedditName, Sort sort)
         {
-            for (int i = 0; i < RedditApiConstants.MaximumAttempts; i++)
+            return await Process(1, subRedditName, "before", "", sort);
+        }
+
+        public async Task<PostDto> GetOldPost(string subRedditName, string previousName, Sort sort, PostType postType, Guid id)
+        {
+            var postDto = await Task.Run(async () =>
             {
 
-                var url = string.Format(RedditApiConstants.GetRedditPostBase, subredditName, lastUsedName);
-                var request = await _client.GetAsync(url);
-
-                if (!request.IsSuccessStatusCode)
+                var post = await Process(RedditApiConstants.MaximumAttempts, subRedditName, "after", previousName, sort, postType);
+                if (post is null)
                     return null;
 
-                var responseBody = await request.Content.ReadAsStringAsync();
-
-
-                var post = GetPostFromApi(responseBody, queueItem.SubRedditId, queueItem.PostType, out string newLastName);
-                if (post != null)
+                return new PostDto
                 {
-                    return new PostDto { Post = post, QueueItemId = queueItem.Id };
+                    Post = post,
+                    QueueItemId = id
+                };
+
+            });
+            return postDto;
+        }
+
+        private async Task<Post> Process(int maximumAttempts, string subRedditName, string beforeOrAfter, string previousName, Sort sort, PostType postType = PostType.Image)
+        {
+            for (var i = 0; i < maximumAttempts; i++)
+            {
+                var url = string.Format(RedditApiConstants.GetRedditPostBase, subRedditName, sort.ToString().ToLowerInvariant(), beforeOrAfter, previousName);
+
+                var client = _clientFactory.CreateClient();
+                var request = await client.GetAsync(url);
+
+                if (!request.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"Error getting new post. {url}, {request.StatusCode}");
+                    return null;
                 }
 
-                if (string.IsNullOrEmpty(newLastName))
-                    return null; //no new posts found.
+                var responseBody = await request.Content.ReadAsStringAsync();
+                var post = ProcessRequest(responseBody, out previousName, postType);
 
-                lastUsedName = newLastName;
+                if (post is not null)
+                    return post;
             }
-             
+
+            //If we got this far we are not able to find any posts.
             return null;
-            
         }
 
         #region Utils
 
+        private static Post ProcessRequest(string request, out string previousPostName, PostType postType)
+        {
+            previousPostName = string.Empty;
+
+            var posts = ParseRequest(request).ToList();
+            if (!posts.Any())
+                return null;
+
+            var post = postType switch
+            {
+                PostType.Image => posts.FirstOrDefault(x =>
+                    x.GetPostType() == PostType.Gif || x.GetPostType() == PostType.Image ||
+                    x.GetPostType() == PostType.Video),
+                PostType.Gif => posts.FirstOrDefault(x => x.GetPostType() == PostType.Gif),
+                PostType.Video => posts.FirstOrDefault(x => x.GetPostType() == PostType.Video),
+                PostType.Post => posts.FirstOrDefault(x => x.GetPostType() == PostType.Post),
+                _ => null
+            };
+
+            previousPostName = posts.Last().Id;
+            return post;
+        }
+
+        private static IEnumerable<Post> ParseRequest(string request)
+        {
+            var apiPosts = JsonConvert.DeserializeObject<ApiSubReddit>(request);
+
+            var posts = apiPosts?.Data?.Children?.Select(x => x.Data)
+                .Select(x =>
+                {
+                    var thumbsUp = int.Parse(x.Ups);
+
+                    return new Post
+                    {
+                        Author = x.Author, Id = x.Name, IsOver18 = x.Over18, Selftext = x.Selftext,
+                        Thumbnail = x.Thumbnail, Title = x.Title, PostLink = x.Permalink, Url = x.Url, Ups = thumbsUp
+                    };
+                });
+
+            return posts;
+        }
 
         private SubReddit ParseSubReddit(string name, string responseData)
         {
@@ -84,12 +158,13 @@ namespace UltimateRedditBot.Core.Services
                     return null;
 
                 var isOver18 = (bool)baseElement.over18;
+
                 return new SubReddit(name, isOver18);
 
             }
             catch(Exception e)
             {
-
+               _logger.LogError(e, " encountered an error while parsing the subreddit");
             }
 
             return null;
@@ -97,49 +172,7 @@ namespace UltimateRedditBot.Core.Services
         }
 
         private static bool ValidSubReddit(string name, string responseName)
-            => name.ToUpper() == responseName.ToUpper();
-
-
-        private Post GetPostFromApi(string responseBody, int subRedditId, PostType postType, out string newLastUsedName)
-        {
-            newLastUsedName = string.Empty;
-
-            var posts = ParseData(responseBody, subRedditId);
-
-            if (posts == null || !posts.Any())
-                return null;
-
-            Post post = null;
-
-            if (postType == PostType.Image)
-                post = posts.FirstOrDefault(post => post.GetPostType() == PostType.Gif || post.GetPostType() == PostType.Image || post.GetPostType() == PostType.Video);
-
-            if (postType == PostType.Gif)
-                post = posts.FirstOrDefault(post => post.GetPostType() == PostType.Gif);
-
-            if (postType == PostType.Video)
-                post = posts.FirstOrDefault(post => post.GetPostType() == PostType.Video);
-
-            if (postType == PostType.Post)
-                post = posts.FirstOrDefault(post => post.GetPostType() == PostType.Post);
-
-            newLastUsedName = posts.Last().PostId;
-            return post;
-        }
-
-        private IEnumerable<Post> ParseData(string response, int subRedditId)
-        {
-            var apiPosts = JsonConvert.DeserializeObject<ApiSubReddit>(response);
-            if (apiPosts == null || apiPosts.Data == null || apiPosts.Data.Children == null)
-                return null;
-
-            var posts = apiPosts.Data.Children.Select(x => x.Data)
-                .Select(x => 
-                    new Post { Author = x.Author, PostId = x.Name, IsOver18 = x.Over18, Selftext = x.Selftext, Thumbnail = x.Thumbnail, Title = x.Title, PostLink = x.Permalink, Url = x.Url, SubRedditId = subRedditId });
-
-            return posts;
-        }
-        
+            => name.Equals(responseName, StringComparison.OrdinalIgnoreCase);
 
         #endregion
 

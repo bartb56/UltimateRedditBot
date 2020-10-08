@@ -1,5 +1,4 @@
-﻿using Discord;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using UltimateRedditBot.Domain.Models;
 using UltimateRedditBot.Domain.Queue;
@@ -10,8 +9,10 @@ namespace UltimateRedditBot.App.Factories.QueueFactory
     {
         Task AddToQueue(ulong guildId, string subRedditName, PostType post, ulong channelId, int amountOfTimes);
 
-        Task<IEnumerable<QueueItem>> GetByGuildId(ulong guildId);
+        IEnumerable<QueueItem> GetByGuildId(ulong guildId);
 
-        Task ClearGuildQueue(ulong guildId);
+        void ClearChannelQueue(ulong channelId);
+
+        Task RemoveSubredditFromQueue(ulong channelId, string subredditName);
     }
 }

@@ -6,10 +6,6 @@ namespace UltimateRedditBot.App.Factories.GuildSettingsFactory
     {
         Task<bool> SaveChanges(ulong guildId, string key, string value);
 
-        Task<bool> SaveChanges<TObj>(ulong guildId, string key, TObj value);
-
-        Task<string> GetGuildSettingByKey(ulong guildId, string key);
-
         Task<TObj> GetGuildSettingByKey<TObj>(ulong guildId, string key);
     }
 }

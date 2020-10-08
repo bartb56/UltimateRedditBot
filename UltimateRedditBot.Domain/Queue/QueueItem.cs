@@ -1,23 +1,22 @@
-﻿using Discord;
-using System;
-using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using UltimateRedditBot.Domain.Enums;
 using UltimateRedditBot.Domain.Models;
 
 namespace UltimateRedditBot.Domain.Queue
 {
     [Serializable]
-    public class QueueItem : IEquatable<QueueItem>
+    public class QueueItem
     {
         #region Constructor
 
-        public QueueItem(int guildId, int subRedditId, ulong channelId, PostType postType)
+        public QueueItem(int subRedditId, string subredditName, ulong channelId, PostType postType, Guid id, Sort sort)
         {
-            GuildId = guildId;
             SubRedditId = subRedditId;
+            SubredditName = subredditName;
             ChannelId = channelId;
             PostType = postType;
-
-            Id = Guid.NewGuid();
+            Id = id;
+            Sort = sort;
         }
 
         public QueueItem()
@@ -35,22 +34,15 @@ namespace UltimateRedditBot.Domain.Queue
 
         public Guid Id { get; set; }
 
-        public int GuildId { get; set; }
-
         public int SubRedditId { get; set; }
+
+        public string SubredditName { get; set; }
 
         public ulong ChannelId { get; set; }
 
         public PostType PostType { get; set; }
 
-
-        public bool Equals([AllowNull] QueueItem other)
-        {
-            if (other is null)
-                return false;
-
-            return this.Id == other.Id && this.GuildId == other.GuildId && this.SubRedditId == other.SubRedditId && this.ChannelId == other.ChannelId && this.PostType == other.PostType;
-        }
+        public Sort Sort { get; set; }
 
         #endregion
     }

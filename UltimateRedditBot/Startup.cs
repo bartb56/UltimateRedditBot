@@ -1,99 +1,60 @@
-﻿using Discord;
-using Discord.Commands;
-using Discord.WebSocket;
-using EasyCaching.Core.Configurations;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Builder.Internal;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using StackExchange.Redis;
-using System;
-using System.Threading.Tasks;
-using UltimateRedditBot.App.Extensions;
-using UltimateRedditBot.App.Factories.GuildFactory;
-using UltimateRedditBot.App.Factories.GuildSettingsFactory;
-using UltimateRedditBot.App.Factories.QueueFactory;
-using UltimateRedditBot.App.Factories.SubRedditFactory;
-using UltimateRedditBot.Core.AppService;
-using UltimateRedditBot.Core.Constants;
-using UltimateRedditBot.Core.Repository;
+using Serilog;
 using UltimateRedditBot.Core.Services;
-using UltimateRedditBot.Core.Uow;
 using UltimateRedditBot.Database;
 using UltimateRedditBot.Discord;
 using UltimateRedditBot.Discord.Commands;
-using UltimateRedditBot.Discord.Modules;
 using UltimateRedditBot.Extensions;
-using UltimateRedditBot.Infra.AppServices;
-using UltimateRedditBot.Infra.Repository;
-using UltimateRedditBot.Infra.Services;
-using UltimateRedditBot.Infra.Uow;
 
 namespace UltimateRedditBot
 {
     public class Startup
     {
-        public IConfigurationRoot Configuration { get; }
-
-        public Startup(string[] args)
+        public Startup(IConfiguration configuration)
         {
-            Configuration = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json", true, true)
-                .AddEnvironmentVariables()
-                .AddCommandLine(args)
-                .Build();
+            Configuration = configuration;
+            //Set the configuration
+
         }
 
-        public static async Task RunAsync(string[] args)
-        {
-            var startup = new Startup(args);
-            await startup.RunAsync();
-        }
+        public IConfiguration Configuration { get; }
 
-        public async Task RunAsync()
+        public void ConfigureServices(IServiceCollection services)
         {
-            var services = new ServiceCollection();
-            ConfigureServices(services);
-           
+            services.AddLogging(configure => configure.AddSerilog());
+            services.AddHttpClient();
+
+            //Register the dbContext
+            AddBotDbContext(services);
+
+            //Register all the ultimate reddit bot services.s
+            services.AddUltimateRedditBot();
+
+            //Add the background tasks.
+            services.AddHostedService<SubscriptionBackgroundTask>();
 
             var provider = services.BuildServiceProvider();
-            var applicationBuilder = new ApplicationBuilder(provider);
-            Configure(applicationBuilder);
 
             //Run the bot startup service.
-            await provider.GetRequiredService<StartDiscord>().StartAsync();
+            provider.GetRequiredService<StartDiscord>().StartAsync().Wait();
             provider.GetRequiredService<CommandHandler>();
-            //Keep alive
-            await Task.Delay(-1);
-        }
-
-
-        private void ConfigureServices(IServiceCollection services)
-        {
-            services.AddSingleton(Configuration)
-                .AddDbContext<Context>(options =>
-                {
-                    options.UseSqlServer(Configuration["ConnectionString:DefaultConnection"]);
-                });
-
-            services.AddEasyCaching(options =>
-            {
-                options.UseRedis(redisConfig =>
-                {
-                    redisConfig.DBConfig.Endpoints.Add(new ServerEndPoint(Configuration["RedisConnection"], Int32.Parse(Configuration["RedisPort"])));
-
-                    redisConfig.DBConfig.AllowAdmin = true;
-                },
-                CachingConstants.RedisName);
-            });
-
-            services.AddUltimateRedditBot();
         }
 
         public void Configure(IApplicationBuilder app)
         {
-            app.UseUltimateExceptionHandler();
+            app.UseSerilogRequestLogging();
+        }
+
+        private void AddBotDbContext(IServiceCollection services)
+        {
+            services.AddSingleton(Configuration)
+                    .AddDbContext<Context>(options =>
+                    {
+                        options.UseSqlServer(Configuration["ConnectionString:DefaultConnection"]);
+                    });
         }
     }
 }

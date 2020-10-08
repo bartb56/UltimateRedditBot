@@ -6,37 +6,55 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UltimateRedditBot.App.Factories.GuildFactory;
 
 namespace UltimateRedditBot.Discord
 {
     public class StartDiscord
     {
+        #region Fields
+
         private readonly IServiceProvider _provider;
         private readonly DiscordSocketClient _discord;
         private readonly CommandService _commands;
-        private readonly IConfigurationRoot _config;
+        private readonly IConfiguration _config;
         private readonly IGuildFactory _guildFactory;
+        private readonly ILogger<StartDiscord> _logger;
 
-        public StartDiscord(IServiceProvider provider, DiscordSocketClient discord, CommandService commands, IConfigurationRoot config, IGuildFactory guildFactory)
+        #endregion
+
+        #region Constructor
+
+        public StartDiscord(IServiceProvider provider, DiscordSocketClient discord, CommandService commands, IConfiguration config, IGuildFactory guildFactory, ILogger<StartDiscord> logger)
         {
             _provider = provider;
             _discord = discord;
             _commands = commands;
             _config = config;
             _guildFactory = guildFactory;
+            _logger = logger;
         }
 
+        #endregion
+
+        #region Methods
+
+        /// <summary>
+        /// Start the discord bot.
+        /// </summary>
+        /// <returns></returns>
         public async Task StartAsync()
         {
-            Console.WriteLine("Conecting...");
+            //Connect to discord.
+            _logger.LogInformation("Connecting...");
             await Connect();
-            Console.WriteLine("Connected");
-
+            _logger.LogInformation("Connected");
             //Load the modules
-            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);     // Load commands and modules into the command service
+            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
 
-            await SyncDatabase();
+            //Register new guilds.
+            await RegisterNewGuilds();
         }
 
         /// <summary>
@@ -44,22 +62,31 @@ namespace UltimateRedditBot.Discord
         /// </summary>
         private async Task Connect()
         {
-            string discordToken = _config["AppKey"];     // Get the discord token from the config file
+            // Get the discord token from the config file
+            var discordToken = _config["AppKey"];
+
+            //Ensure the bot is not empty.
             if (string.IsNullOrWhiteSpace(discordToken))
                 throw new Exception("Please enter your bot's token into the `appsettings.json` file found in the applications root directory.");
 
             await _discord.LoginAsync(TokenType.Bot, discordToken);
             await _discord.StartAsync();
 
-            await Task.Delay(2000);
-            await _discord.SetGameAsync(_discord.Guilds.Count() + " servers!", type: ActivityType.Watching);
+            //The delay is unfortunately necessary due to discord taking a while to connect to all the guilds.
+            await Task.Delay(1000);
+            await _discord.SetGameAsync(_discord.Guilds.Count + " servers!", type: ActivityType.Watching);
         }
 
-        private async Task SyncDatabase()
+        /// <summary>
+        /// Used to register any guild added while the bot was offline.
+        /// </summary>
+        /// <returns></returns>
+        private async Task RegisterNewGuilds()
         {
-            var guildIds = _discord.Guilds.Select(x => x.Id);
-
+            var guildIds = _discord.Guilds.Select(guild => guild.Id);
             await _guildFactory.Insert(guildIds);
         }
+
+        #endregion
     }
 }

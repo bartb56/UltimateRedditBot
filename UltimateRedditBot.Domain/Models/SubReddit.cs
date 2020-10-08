@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UltimateRedditBot.Domain.Common;
+using UltimateRedditBot.Domain.Enums;
 
 namespace UltimateRedditBot.Domain.Models
 {
@@ -11,10 +11,9 @@ namespace UltimateRedditBot.Domain.Models
 
         #region Constructor
 
+        //Empty ctor for ef core
         public SubReddit()
-        {
-
-        }
+        { }
 
         public SubReddit(string name, bool isNsfw)
         {
@@ -29,10 +28,11 @@ namespace UltimateRedditBot.Domain.Models
 
         #region Methods
 
-        public void Update(string name, bool isNsfw)
+        public void Update(string name, bool isNsfw, Sort sort)
         {
             Name = name;
             IsNsfw = isNsfw;
+            Sort = sort;
         }
 
         #endregion
@@ -42,6 +42,8 @@ namespace UltimateRedditBot.Domain.Models
         public string Name { get; protected set; }
 
         public bool IsNsfw { get; protected set; }
+
+        public Sort Sort { get; protected set; }
 
         public IEnumerable<Post> Posts { get; set; }
 

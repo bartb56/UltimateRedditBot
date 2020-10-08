@@ -13,10 +13,8 @@ namespace UltimateRedditBot.Database
                  .Build();
 
             var dbContextBuilder = new DbContextOptionsBuilder();
-
             var connectionString = configuration["ConnectionString:DefaultConnection"];
 
-            //dbContextBuilder.UseNpgsql(connectionString); postgreql con string
             dbContextBuilder.UseSqlServer(connectionString);
 
             return new Context(dbContextBuilder.Options);

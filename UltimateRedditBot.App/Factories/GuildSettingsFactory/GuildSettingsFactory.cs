@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using UltimateRedditBot.App.Constants;
-using UltimateRedditBot.Infra.Uow;
+using UltimateRedditBot.Infra.AppServices;
 
 namespace UltimateRedditBot.App.Factories.GuildSettingsFactory
 {
@@ -10,51 +10,47 @@ namespace UltimateRedditBot.App.Factories.GuildSettingsFactory
     {
         #region Fields
 
-        private readonly IUnitOfWork _unitOfWork;
-        private static readonly string[] _allowedKeys = { DefaultSettingKeys.Bulk };
+        private readonly IGuildSettingsAppService _guildSettingsAppService;
+        private readonly ISubRedditHistoryAppService _redditHistoryAppService;
+        private static readonly string[] AllowedKeys = { DefaultSettingKeys.Bulk, DefaultSettingKeys.Sort };
 
         #endregion
 
         #region Constructor
 
-        public GuildSettingsFactory(IUnitOfWork unitOfWork)
+        public GuildSettingsFactory(IGuildSettingsAppService guildSettingsAppService, ISubRedditHistoryAppService redditHistoryAppService)
         {
-            _unitOfWork = unitOfWork;
-        }
-
-        public async Task<string> GetGuildSettingByKey(ulong guildId, string key)
-        {
-            return await GetGuildSettingByKey<string>(guildId, key);
-        }
-
-        public async Task<TObj> GetGuildSettingByKey<TObj>(ulong guildId, string key)
-        {
-            return await _unitOfWork.GuildSettingsRepository.GetGuildSettingByKey<TObj>(guildId, key);
-        }
-
-        public async Task<bool> SaveChanges(ulong guildId, string key, string value)
-        {
-            return await SaveChanges<string>(guildId, key, value);
-        }
-
-        public async Task<bool> SaveChanges<TObj>(ulong guildId, string key, TObj value)
-        {
-            if (_allowedKeys.FirstOrDefault(allowedKey => allowedKey.Equals(key, StringComparison.OrdinalIgnoreCase)) != null)
-            {
-                await _unitOfWork.GuildSettingsRepository.SaveChanges<TObj>(guildId, key, value);
-                return true;
-            }
-            return false;
+            _guildSettingsAppService = guildSettingsAppService;
+            _redditHistoryAppService = redditHistoryAppService;
         }
 
         #endregion
 
         #region Methods
 
+        public async Task<TObj> GetGuildSettingByKey<TObj>(ulong guildId, string key)
+        {
+            return await _guildSettingsAppService.GetGuildSettingByKey<TObj>(guildId, key);
+        }
 
+        public async Task<bool> SaveChanges(ulong guildId, string key, string value)
+        {
+            if (key.Equals(DefaultSettingKeys.Sort))
+                await _redditHistoryAppService.RemoveAllGuildHistories(guildId);
+
+            return await SaveChanges<string>(guildId, key, value);
+        }
+
+        private async Task<bool> SaveChanges<TObj>(ulong guildId, string key, TObj value)
+        {
+            if (AllowedKeys.FirstOrDefault(allowedKey => allowedKey.Equals(key, StringComparison.OrdinalIgnoreCase)) ==
+                null) return false;
+
+            await _guildSettingsAppService.SaveChanges(guildId, key, value);
+            return true;
+        }
 
         #endregion
-
 
     }
 }
